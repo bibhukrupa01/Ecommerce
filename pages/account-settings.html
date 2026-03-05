@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Account settings at DRIP YARD">
+    <title>Account Settings — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px;max-width:800px">
+            <h1 style="font-size:2.5rem;margin-bottom:32px">Account <span class="text-red">Settings</span></h1>
+            <div id="settings-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        initBurgerMenu();
+
+        const sc = document.getElementById('settings-content');
+        if (!isLoggedIn()) {
+            sc.innerHTML = '<div style="text-align:center;padding:80px"><div style="font-size:4rem;margin-bottom:16px">🔒</div><h2>Please log in</h2><p style="color:var(--text-secondary);margin:12px 0 24px">Log in to manage your settings.</p><a href="login.html" class="btn btn-primary">Login</a></div>';
+        } else {
+            const user = getCurrentUser();
+            sc.innerHTML = `
+        <div class="settings-section glass">
+          <h4>Personal Information</h4>
+          <form id="info-form">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="set-first" value="${user.firstName}"></div>
+              <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="set-last" value="${user.lastName}"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-input" value="${user.email}" type="email" disabled style="opacity:0.5"></div>
+            <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+          </form>
+        </div>
+        <div class="settings-section glass">
+          <h4>Change Password</h4>
+          <form id="pass-form">
+            <div class="form-group"><label class="form-label">Current Password</label><input class="form-input" type="password" id="cur-pass" placeholder="••••••••" required></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">New Password</label><input class="form-input" type="password" id="new-pass" placeholder="Min 8 characters" minlength="8" required></div>
+              <div class="form-group"><label class="form-label">Confirm New Password</label><input class="form-input" type="password" id="conf-pass" placeholder="••••••••" required></div>
+            </div>
+            <div id="pass-error" style="display:none;color:var(--red-primary);font-size:0.85rem;margin-bottom:12px"></div>
+            <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+          </form>
+        </div>
+        <div class="settings-section glass">
+          <h4>Notification Preferences</h4>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <label class="form-check"><input type="checkbox" checked><span style="font-size:0.9rem;color:var(--text-secondary)">Order updates via email</span></label>
+            <label class="form-check"><input type="checkbox" checked><span style="font-size:0.9rem;color:var(--text-secondary)">Promotional emails</span></label>
+            <label class="form-check"><input type="checkbox"><span style="font-size:0.9rem;color:var(--text-secondary)">SMS notifications</span></label>
+            <label class="form-check"><input type="checkbox" checked><span style="font-size:0.9rem;color:var(--text-secondary)">New arrival alerts</span></label>
+          </div>
+        </div>
+        <div class="settings-section glass" style="border-color:rgba(196,30,58,0.3)">
+          <h4 style="color:var(--red-primary)">Danger Zone</h4>
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:16px">Permanently delete your account and all associated data. This action cannot be undone.</p>
+          <button class="btn btn-secondary btn-sm" style="border-color:var(--red-primary);color:var(--red-primary)" onclick="if(confirm('Are you sure you want to delete your account? This cannot be undone.')){logoutUser();window.location.href='login.html';}">Delete Account</button>
+        </div>
+      `;
+
+            document.getElementById('info-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                updateCurrentUser({ firstName: document.getElementById('set-first').value, lastName: document.getElementById('set-last').value });
+                showToast('Profile updated successfully!');
+            });
+
+            document.getElementById('pass-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const errEl = document.getElementById('pass-error');
+                const curPass = document.getElementById('cur-pass').value;
+                const newPass = document.getElementById('new-pass').value;
+                const confPass = document.getElementById('conf-pass').value;
+                if (curPass !== user.password) { errEl.style.display = 'block'; errEl.textContent = 'Current password is incorrect.'; return; }
+                if (newPass !== confPass) { errEl.style.display = 'block'; errEl.textContent = 'New passwords do not match.'; return; }
+                updateCurrentUser({ password: newPass });
+                errEl.style.display = 'none';
+                showToast('Password updated successfully!');
+                this.reset();
+            });
+        }
+    </script>
+</body>
+
+</html>

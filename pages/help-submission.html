@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Submit a support ticket at DRIP YARD">
+    <title>Help & Support — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px;max-width:700px">
+            <h1 style="font-size:2.5rem;margin-bottom:8px">Help & <span class="text-red">Support</span></h1>
+            <p style="color:var(--text-secondary);margin-bottom:32px">We're here to help. Submit a ticket and we'll get
+                back to you within 24 hours.</p>
+            <div id="help-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        initBurgerMenu();
+
+        const hc = document.getElementById('help-content');
+        if (!isLoggedIn()) {
+            hc.innerHTML = '<div style="text-align:center;padding:60px"><div style="font-size:4rem;margin-bottom:16px">🔒</div><h2>Please log in</h2><p style="color:var(--text-secondary);margin:12px 0 24px">Log in to submit a support ticket.</p><a href="login.html" class="btn btn-primary">Login</a></div>';
+        } else {
+            hc.innerHTML = `
+        <form class="glass" style="padding:32px" id="help-form">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-input" id="h-cat" required>
+              <option value="">Select a category...</option>
+              <option>Order Issue</option><option>Payment Problem</option><option>Shipping & Delivery</option><option>Returns & Refunds</option><option>Product Inquiry</option><option>Account Issue</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Order Number (Optional)</label><input class="form-input" id="h-order" placeholder="#DY-2026-XXXX"></div>
+          <div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="h-subject" placeholder="Brief description of your issue" required></div>
+          <div class="form-group"><label class="form-label">Description</label><textarea class="form-input" id="h-desc" placeholder="Please describe your issue in detail..." required rows="6"></textarea></div>
+          <div class="form-group">
+            <label class="form-label">Priority</label>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <label class="form-check"><input type="radio" name="priority" value="low" style="accent-color:var(--red-primary)"><span style="font-size:0.9rem;color:var(--text-secondary)">Low</span></label>
+              <label class="form-check"><input type="radio" name="priority" value="medium" checked style="accent-color:var(--red-primary)"><span style="font-size:0.9rem;color:var(--text-secondary)">Medium</span></label>
+              <label class="form-check"><input type="radio" name="priority" value="high" style="accent-color:var(--red-primary)"><span style="font-size:0.9rem;color:var(--text-secondary)">High</span></label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">Submit Ticket</button>
+        </form>
+      `;
+
+            document.getElementById('help-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                submitTicket({
+                    category: document.getElementById('h-cat').value,
+                    orderId: document.getElementById('h-order').value,
+                    subject: document.getElementById('h-subject').value,
+                    description: document.getElementById('h-desc').value,
+                    priority: document.querySelector('input[name="priority"]:checked').value
+                });
+                showToast('Ticket submitted successfully!');
+                setTimeout(() => window.location.href = 'my-tickets.html', 1500);
+            });
+        }
+    </script>
+</body>
+
+</html>

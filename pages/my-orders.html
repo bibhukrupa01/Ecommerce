@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View your orders at DRIP YARD">
+    <title>My Orders — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px">
+            <h1 style="font-size:2.5rem;margin-bottom:32px">My <span class="text-red">Orders</span></h1>
+            <div id="orders-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <div id="cart-btn-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        document.getElementById('cart-btn-container').innerHTML = getCartButtonHTML();
+        initBurgerMenu();
+
+        const oc = document.getElementById('orders-content');
+        if (!isLoggedIn()) {
+            oc.innerHTML = '<div style="text-align:center;padding:80px"><div style="font-size:4rem;margin-bottom:16px">🔒</div><h2>Please log in</h2><p style="color:var(--text-secondary);margin:12px 0 24px">Log in to view your orders.</p><a href="login.html" class="btn btn-primary">Login</a></div>';
+        } else {
+            const orders = getMyOrders();
+            function renderOrderCard(order) {
+                return `
+          <div class="glass-card" style="padding:24px;margin-bottom:16px;cursor:pointer" onclick="window.location.href='order-details.html?id=${order.id}'">
+            <div class="flex-between" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+              <div><h4 style="font-size:1rem">Order #${order.id}</h4><p style="font-size:0.8rem;color:var(--text-muted)">Placed on ${formatDate(order.date)}</p></div>
+              ${statusBadge(order.status)}
+            </div>
+            <div style="display:flex;gap:12px;margin-bottom:12px">
+              ${order.items.slice(0, 3).map(() => `<div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(135deg,#1a1a1a,#2a1015);flex-shrink:0"></div>`).join('')}
+              ${order.items.length > 3 ? `<div style="width:60px;height:60px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted)">+${order.items.length - 3}</div>` : ''}
+            </div>
+            <div class="flex-between"><span style="font-size:0.85rem;color:var(--text-muted)">${order.items.reduce((s, i) => s + i.qty, 0)} items</span><span style="font-weight:700">$${order.total.toFixed(2)}</span></div>
+          </div>`;
+            }
+
+            if (orders.length === 0) {
+                oc.innerHTML = '<div style="text-align:center;padding:60px"><div style="font-size:3rem;margin-bottom:16px">📦</div><h3>No orders yet</h3><p style="color:var(--text-secondary);margin:8px 0 24px">Start shopping to see your orders here!</p><a href="category.html" class="btn btn-primary">Shop Now</a></div>';
+            } else {
+                const statuses = ['all', 'processing', 'shipped', 'delivered'];
+                oc.innerHTML = `
+          <div class="tabs">
+            ${statuses.map(s => `<button class="tab-btn ${s === 'all' ? 'active' : ''}" data-tab="${s}-orders">${s === 'all' ? 'All Orders' : s.charAt(0).toUpperCase() + s.slice(1)}</button>`).join('')}
+          </div>
+          ${statuses.map(s => {
+                    const filtered = s === 'all' ? orders : orders.filter(o => o.status === s);
+                    return `<div id="${s}-orders" class="tab-content ${s === 'all' ? 'active' : ''}">
+              ${filtered.length > 0 ? filtered.map(o => renderOrderCard(o)).join('') : `<p style="text-align:center;color:var(--text-muted);padding:40px">No ${s} orders</p>`}
+            </div>`;
+                }).join('')}
+        `;
+                initTabs();
+            }
+        }
+    </script>
+</body>
+
+</html>

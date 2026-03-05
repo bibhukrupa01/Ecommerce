@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Submit a review at DRIP YARD">
+    <title>Write a Review — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px;max-width:700px">
+            <a href="customer-reviews.html"
+                style="color:var(--text-muted);font-size:0.85rem;display:inline-block;margin-bottom:24px">← Back to
+                Reviews</a>
+            <h1 style="font-size:2.5rem;margin-bottom:32px">Write a <span class="text-red">Review</span></h1>
+            <div id="review-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        initBurgerMenu();
+
+        const rc = document.getElementById('review-content');
+        if (!isLoggedIn()) {
+            rc.innerHTML = '<div style="text-align:center;padding:60px"><div style="font-size:4rem;margin-bottom:16px">🔒</div><h2>Please log in</h2><p style="color:var(--text-secondary);margin:12px 0 24px">You need to be logged in to write a review.</p><a href="login.html" class="btn btn-primary">Login</a></div>';
+        } else {
+            const products = getProducts();
+            const preselect = getUrlParam('product');
+
+            rc.innerHTML = `
+        <form class="glass" style="padding:32px" id="review-form">
+          <div class="form-group">
+            <label class="form-label">Select Product</label>
+            <select class="form-input" id="rev-product" required>
+              <option value="">Choose a product...</option>
+              ${products.map(p => `<option value="${p.id}" ${preselect == p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your Rating</label>
+            <div class="star-rating-input" data-rating="0" style="display:flex;gap:8px;font-size:2rem;cursor:pointer">
+              <span class="star" style="color:var(--text-muted)">★</span><span class="star" style="color:var(--text-muted)">★</span><span class="star" style="color:var(--text-muted)">★</span><span class="star" style="color:var(--text-muted)">★</span><span class="star" style="color:var(--text-muted)">★</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Your Review</label>
+            <textarea class="form-input" id="rev-text" placeholder="Tell us what you loved (or didn't) about the product..." required rows="5"></textarea>
+          </div>
+          <label class="form-check" style="margin-bottom:24px"><input type="checkbox" required><span style="font-size:0.9rem;color:var(--text-secondary)">I confirm this is an honest review of my own experience</span></label>
+          <button type="submit" class="btn btn-primary" style="width:100%">Submit Review</button>
+        </form>
+      `;
+
+            initStarRating();
+
+            document.getElementById('review-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const ratingEl = document.querySelector('.star-rating-input');
+                const rating = parseInt(ratingEl.dataset.rating);
+                if (!rating) { showToast('Please select a rating!', 'error'); return; }
+                submitReview({
+                    productId: parseInt(document.getElementById('rev-product').value),
+                    rating: rating,
+                    text: document.getElementById('rev-text').value
+                });
+                showToast('Review submitted! It will appear after admin approval.');
+                setTimeout(() => window.location.href = 'customer-reviews.html', 1500);
+            });
+        }
+    </script>
+</body>
+
+</html>

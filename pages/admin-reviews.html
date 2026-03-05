@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Reviews — DRIP YARD">
+    <title>Admin Reviews — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="admin-layout">
+        <div id="sidebar-container"></div>
+        <main class="admin-main">
+            <div class="admin-header">
+                <div>
+                    <button class="btn btn-icon btn-secondary" style="display:none" id="sidebar-toggle"
+                        onclick="toggleAdminSidebar()">☰</button>
+                    <h1>Reviews</h1>
+                    <p style="color:var(--text-muted);font-size:0.9rem">Moderate customer reviews</p>
+                </div>
+            </div>
+            <div id="reviews-content"></div>
+        </main>
+    </div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('sidebar-container').innerHTML = getAdminSidebarHTML('admin-reviews.html');
+        initBurgerMenu();
+
+        function renderReviews() {
+            const reviews = getReviews();
+            const products = getProducts();
+            const pending = reviews.filter(r => r.status === 'pending');
+            const approved = reviews.filter(r => r.status === 'approved');
+            const rejected = reviews.filter(r => r.status === 'rejected');
+
+            function reviewCard(r, showActions) {
+                const prod = products.find(p => p.id === r.productId);
+                return `
+          <div class="glass-card" style="padding:20px;margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(196,30,58,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--red-primary);font-size:0.8rem">${r.userName.charAt(0)}</div>
+              <div style="flex:1">
+                <strong style="font-size:0.9rem">${r.userName}</strong>
+                <p style="font-size:0.75rem;color:var(--text-muted)">${formatDate(r.date)} · ${prod ? prod.name : 'Unknown product'}</p>
+              </div>
+              <div style="color:var(--gold);font-size:0.9rem">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+            </div>
+            <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:${showActions ? '12px' : '0'}">${r.text}</p>
+            ${showActions ? `<div style="display:flex;gap:8px">
+              <button class="btn btn-sm" style="background:#22c55e;color:white;font-size:0.75rem;padding:4px 12px" onclick="updateReviewStatus(${r.id},'approved');renderReviews();showToast('Review approved')">Approve</button>
+              <button class="btn btn-sm" style="background:var(--red-primary);color:white;font-size:0.75rem;padding:4px 12px" onclick="updateReviewStatus(${r.id},'rejected');renderReviews();showToast('Review rejected')">Reject</button>
+            </div>` : ''}
+          </div>`;
+            }
+
+            document.getElementById('reviews-content').innerHTML = `
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card glass-card"><h4>Pending</h4><div class="value" style="color:var(--gold)">${pending.length}</div></div>
+          <div class="stat-card glass-card"><h4>Approved</h4><div class="value" style="color:#22c55e">${approved.length}</div></div>
+          <div class="stat-card glass-card"><h4>Rejected</h4><div class="value" style="color:var(--red-primary)">${rejected.length}</div></div>
+          <div class="stat-card glass-card"><h4>Total</h4><div class="value">${reviews.length}</div></div>
+        </div>
+        ${pending.length > 0 ? `<div class="glass" style="padding:24px;margin-bottom:24px"><h4 style="margin-bottom:16px;color:var(--gold)">⏳ Pending Reviews (${pending.length})</h4>${pending.map(r => reviewCard(r, true)).join('')}</div>` : ''}
+        <div class="glass" style="padding:24px"><h4 style="margin-bottom:16px">✅ Approved Reviews (${approved.length})</h4>${approved.length > 0 ? approved.map(r => reviewCard(r, false)).join('') : '<p style="color:var(--text-muted)">No approved reviews</p>'}</div>
+      `;
+        }
+        renderReviews();
+    </script>
+    <style>
+        @media(max-width:768px) {
+            #sidebar-toggle {
+                display: flex !important
+            }
+        }
+    </style>
+</body>
+
+</html>

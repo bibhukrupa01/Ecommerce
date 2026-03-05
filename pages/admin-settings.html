@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Settings — DRIP YARD">
+    <title>Admin Settings — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="admin-layout">
+        <div id="sidebar-container"></div>
+        <main class="admin-main">
+            <div class="admin-header">
+                <div>
+                    <button class="btn btn-icon btn-secondary" style="display:none" id="sidebar-toggle"
+                        onclick="toggleAdminSidebar()">☰</button>
+                    <h1>Settings</h1>
+                    <p style="color:var(--text-muted);font-size:0.9rem">Manage store settings</p>
+                </div>
+            </div>
+            <form id="settings-form">
+                <div class="settings-section glass">
+                    <h4>Store Information</h4>
+                    <div class="form-group"><label class="form-label">Store Name</label><input class="form-input"
+                            id="s-name" value="DRIP YARD"></div>
+                    <div class="form-group"><label class="form-label">Store Email</label><input class="form-input"
+                            id="s-email" type="email" value="support@dripyard.com"></div>
+                    <div class="form-group"><label class="form-label">Store Description</label><textarea
+                            class="form-input" id="s-desc"
+                            rows="3">Premium streetwear inspired by Money Heist. Bold designs for the modern rebel.</textarea>
+                    </div>
+                </div>
+                <div class="settings-section glass">
+                    <h4>Shipping</h4>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">Free Shipping Threshold ($)</label><input
+                                class="form-input" id="s-freeship" type="number" value="100"></div>
+                        <div class="form-group"><label class="form-label">Flat Rate Shipping ($)</label><input
+                                class="form-input" id="s-flatship" type="number" step="0.01" value="5.99"></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Tax Rate (%)</label><input class="form-input"
+                            id="s-tax" type="number" step="0.01" value="8"></div>
+                </div>
+                <div class="settings-section glass">
+                    <h4>Notifications</h4>
+                    <div style="display:flex;flex-direction:column;gap:16px">
+                        <label class="form-check"><input type="checkbox" id="s-notif-order" checked><span
+                                style="font-size:0.9rem;color:var(--text-secondary)">Email me on new
+                                orders</span></label>
+                        <label class="form-check"><input type="checkbox" id="s-notif-review" checked><span
+                                style="font-size:0.9rem;color:var(--text-secondary)">Email me on new
+                                reviews</span></label>
+                        <label class="form-check"><input type="checkbox" id="s-notif-stock"><span
+                                style="font-size:0.9rem;color:var(--text-secondary)">Low stock alerts</span></label>
+                    </div>
+                </div>
+                <div class="settings-section glass" style="border-color:rgba(196,30,58,0.3)">
+                    <h4 style="color:var(--red-primary)">Danger Zone</h4>
+                    <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:16px">Reset all store data.
+                        This will clear all orders, reviews, tickets, and user data.</p>
+                    <button type="button" class="btn btn-secondary btn-sm"
+                        style="border-color:var(--red-primary);color:var(--red-primary)"
+                        onclick="if(confirm('Are you sure? This will delete ALL data!')){localStorage.clear();showToast('All data has been reset');setTimeout(()=>location.reload(),1500);}">Reset
+                        All Data</button>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top:16px">Save Settings</button>
+            </form>
+        </main>
+    </div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('sidebar-container').innerHTML = getAdminSidebarHTML('admin-settings.html');
+        initBurgerMenu();
+
+        // Load saved settings
+        const settings = getSettings();
+        if (settings.storeName) document.getElementById('s-name').value = settings.storeName;
+        if (settings.storeEmail) document.getElementById('s-email').value = settings.storeEmail;
+        if (settings.storeDesc) document.getElementById('s-desc').value = settings.storeDesc;
+        if (settings.freeShipThreshold) document.getElementById('s-freeship').value = settings.freeShipThreshold;
+        if (settings.flatShipping) document.getElementById('s-flatship').value = settings.flatShipping;
+        if (settings.taxRate) document.getElementById('s-tax').value = settings.taxRate;
+
+        document.getElementById('settings-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            saveSettings({
+                storeName: document.getElementById('s-name').value,
+                storeEmail: document.getElementById('s-email').value,
+                storeDesc: document.getElementById('s-desc').value,
+                freeShipThreshold: parseFloat(document.getElementById('s-freeship').value),
+                flatShipping: parseFloat(document.getElementById('s-flatship').value),
+                taxRate: parseFloat(document.getElementById('s-tax').value),
+                notifOrders: document.getElementById('s-notif-order').checked,
+                notifReviews: document.getElementById('s-notif-review').checked,
+                notifStock: document.getElementById('s-notif-stock').checked
+            });
+            showToast('Settings saved successfully!');
+        });
+    </script>
+    <style>
+        @media(max-width:768px) {
+            #sidebar-toggle {
+                display: flex !important
+            }
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Your DRIP YARD wishlist">
+    <title>Wishlist — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px">
+            <h1 style="font-size:2.5rem;margin-bottom:32px">Your <span class="text-red">Wishlist</span></h1>
+            <div id="wishlist-grid" class="wishlist-grid"></div>
+            <div id="wishlist-empty" class="glass" style="padding:60px;text-align:center;display:none">
+                <p style="font-size:3rem;margin-bottom:16px">💔</p>
+                <h3 style="font-family:var(--font-accent);font-size:1.3rem;margin-bottom:8px">Your wishlist is empty
+                </h3>
+                <p style="color:var(--text-secondary);margin-bottom:24px">Browse our collection and save items you love
+                </p>
+                <a href="category.html" class="btn btn-primary">Start Shopping</a>
+            </div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <div id="cart-btn-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        document.getElementById('cart-btn-container').innerHTML = getCartButtonHTML();
+        initBurgerMenu();
+        const wl = JSON.parse(localStorage.getItem('dripyard_wishlist') || '[]');
+        const grid = document.getElementById('wishlist-grid');
+        const empty = document.getElementById('wishlist-empty');
+        if (wl.length === 0) { grid.style.display = 'none'; empty.style.display = 'block'; }
+        else { grid.innerHTML = wl.map(p => renderProductCard(p)).join(''); }
+    </script>
+</body>
+
+</html>

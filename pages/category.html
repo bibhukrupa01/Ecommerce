@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Browse DRIP YARD's premium streetwear collection">
+    <title>Shop — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px">
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:24px">
+                <a href="../index.html" style="color:var(--text-muted)">Home</a> / <span class="text-red"
+                    id="breadcrumb-cat">Shop</span>
+            </p>
+            <div style="display:flex;gap:32px;align-items:flex-start">
+                <!-- Sidebar Filters -->
+                <aside class="glass" style="width:260px;padding:24px;flex-shrink:0;position:sticky;top:96px"
+                    id="filter-sidebar">
+                    <h4 style="margin-bottom:20px;font-size:1rem">Filters</h4>
+                    <div style="margin-bottom:24px">
+                        <h5
+                            style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px">
+                            Category</h5>
+                        <div id="cat-filters"></div>
+                    </div>
+                    <div style="margin-bottom:24px">
+                        <h5
+                            style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px">
+                            Price Range</h5>
+                        <input type="range" min="0" max="300" value="300" id="price-range"
+                            style="width:100%;accent-color:var(--red-primary)">
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+                            <span>$0</span><span id="price-label">$300</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h5
+                            style="font-size:0.8rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:12px">
+                            Size</h5>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap" id="size-filters"></div>
+                    </div>
+                </aside>
+                <!-- Product Grid -->
+                <div style="flex:1">
+                    <div class="flex-between" style="margin-bottom:24px;flex-wrap:wrap;gap:12px">
+                        <h2 style="font-size:1.8rem" id="shop-title">All Products <span class="text-muted"
+                                style="font-size:1rem" id="product-count"></span></h2>
+                        <select class="form-input" style="width:auto;padding:10px 40px 10px 14px" id="sort-select">
+                            <option value="featured">Sort by: Featured</option>
+                            <option value="price-asc">Price: Low to High</option>
+                            <option value="price-desc">Price: High to Low</option>
+                            <option value="newest">Newest First</option>
+                            <option value="rating">Best Rating</option>
+                        </select>
+                    </div>
+                    <div id="product-grid" class="grid"
+                        style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px"></div>
+                    <div id="no-products" style="display:none;text-align:center;padding:60px 20px">
+                        <p style="font-size:3rem;margin-bottom:16px">🔍</p>
+                        <h3 style="font-family:var(--font-accent);margin-bottom:8px">No products found</h3>
+                        <p style="color:var(--text-secondary)">Try adjusting your filters</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <div id="cart-btn-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        document.getElementById('cart-btn-container').innerHTML = getCartButtonHTML();
+        initBurgerMenu();
+
+        const allProducts = getProducts();
+        const urlCat = getUrlParam('cat');
+        let selectedCats = urlCat ? [urlCat] : [];
+        let maxPrice = 300;
+        let selectedSize = null;
+        let sortBy = 'featured';
+
+        // Category names
+        const catNames = { hoodies: 'Hoodies', tshirts: 'T-Shirts', jackets: 'Jackets', pants: 'Pants', accessories: 'Accessories', sets: 'Sets', new: 'New Arrivals' };
+
+        // Build category filter checkboxes
+        const categories = [...new Set(allProducts.map(p => p.category))];
+        const catContainer = document.getElementById('cat-filters');
+        catContainer.innerHTML = categories.map(cat => `
+      <label class="form-check" style="margin-bottom:8px">
+        <input type="checkbox" data-cat="${cat}" ${selectedCats.includes(cat) ? 'checked' : ''}>
+        <span style="font-size:0.9rem;color:var(--text-secondary)">${catNames[cat] || cat}</span>
+      </label>
+    `).join('');
+
+        // Build size filter buttons
+        const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+        document.getElementById('size-filters').innerHTML = sizes.map(s => `
+      <button class="btn btn-sm btn-secondary size-btn" style="padding:6px 14px;font-size:0.8rem" data-size="${s}">${s}</button>
+    `).join('');
+
+        // Update breadcrumb
+        if (urlCat === 'new') document.getElementById('breadcrumb-cat').textContent = 'New Arrivals';
+        else if (urlCat && catNames[urlCat]) document.getElementById('breadcrumb-cat').textContent = catNames[urlCat];
+
+        function filterAndRender() {
+            let filtered = [...allProducts];
+
+            // Category filter
+            const checkedCats = [...document.querySelectorAll('#cat-filters input:checked')].map(cb => cb.dataset.cat);
+            if (checkedCats.length > 0) filtered = filtered.filter(p => checkedCats.includes(p.category));
+
+            // URL cat=new → show new items
+            if (urlCat === 'new' && checkedCats.length === 0) filtered = allProducts.filter(p => p.isNew || p.badge === 'New');
+
+            // Price filter
+            filtered = filtered.filter(p => p.price <= maxPrice);
+
+            // Size filter
+            if (selectedSize) filtered = filtered.filter(p => p.sizes && p.sizes.includes(selectedSize));
+
+            // Sort
+            switch (sortBy) {
+                case 'price-asc': filtered.sort((a, b) => a.price - b.price); break;
+                case 'price-desc': filtered.sort((a, b) => b.price - a.price); break;
+                case 'rating': filtered.sort((a, b) => b.rating - a.rating); break;
+                case 'newest': filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0)); break;
+            }
+
+            document.getElementById('product-count').textContent = `(${filtered.length})`;
+            const grid = document.getElementById('product-grid');
+            const noProds = document.getElementById('no-products');
+            if (filtered.length === 0) { grid.style.display = 'none'; noProds.style.display = 'block'; }
+            else { grid.style.display = ''; noProds.style.display = 'none'; grid.innerHTML = filtered.map(p => renderProductCard(p)).join(''); }
+        }
+
+        // Event listeners
+        catContainer.addEventListener('change', filterAndRender);
+        document.getElementById('price-range').addEventListener('input', function () {
+            maxPrice = Number(this.value);
+            document.getElementById('price-label').textContent = '$' + maxPrice;
+            filterAndRender();
+        });
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.replace('btn-primary', 'btn-secondary'));
+                if (selectedSize === this.dataset.size) { selectedSize = null; }
+                else { selectedSize = this.dataset.size; this.classList.replace('btn-secondary', 'btn-primary'); }
+                filterAndRender();
+            });
+        });
+        document.getElementById('sort-select').addEventListener('change', function () {
+            sortBy = this.value;
+            filterAndRender();
+        });
+
+        filterAndRender();
+    </script>
+    <style>
+        @media(max-width:768px) {
+            #filter-sidebar {
+                display: none
+            }
+        }
+    </style>
+</body>
+
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Checkout at DRIP YARD">
+    <title>Checkout — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px">
+            <h1 style="font-size:2.5rem;margin-bottom:12px">Checkout</h1>
+            <div id="checkout-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        initBurgerMenu();
+
+        const cc = document.getElementById('checkout-content');
+
+        if (!isLoggedIn()) {
+            cc.innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:4rem;margin-bottom:16px">🔒</div><h2>Please log in first</h2><p style="color:var(--text-secondary);margin:12px 0 24px">You need to be logged in to checkout.</p><a href="login.html" class="btn btn-primary">Login to Continue</a></div>';
+        } else if (cart.length === 0) {
+            cc.innerHTML = '<div style="text-align:center;padding:80px 20px"><div style="font-size:4rem;margin-bottom:16px">🛒</div><h2>Your cart is empty</h2><p style="color:var(--text-secondary);margin:12px 0 24px">Add items before checking out.</p><a href="category.html" class="btn btn-primary">Start Shopping</a></div>';
+        } else {
+            const subtotal = getCartTotal();
+            const tax = +(subtotal * 0.08).toFixed(2);
+            const shipping = subtotal >= 100 ? 0 : 5.99;
+            const total = +(subtotal + tax + shipping).toFixed(2);
+            const user = getCurrentUser();
+
+            cc.innerHTML = `
+        <div class="checkout-steps">
+          <div class="checkout-step completed"><span class="step-num">✓</span> Cart</div>
+          <div class="step-connector completed"></div>
+          <div class="checkout-step active"><span class="step-num">2</span> Details</div>
+          <div class="step-connector"></div>
+          <div class="checkout-step"><span class="step-num">3</span> Payment</div>
+          <div class="step-connector"></div>
+          <div class="checkout-step"><span class="step-num">4</span> Confirm</div>
+        </div>
+        <form id="checkout-form">
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:32px;align-items:start" id="checkout-layout">
+          <div>
+            <div class="glass" style="padding:28px;margin-bottom:24px">
+              <h3 style="font-family:var(--font-accent);font-size:1.1rem;margin-bottom:20px">Shipping Address</h3>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="sh-first" value="${user.firstName}" required></div>
+                <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="sh-last" value="${user.lastName}" required></div>
+              </div>
+              <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="sh-address" placeholder="123 Heist Street" required></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">City</label><input class="form-input" id="sh-city" placeholder="Madrid" required></div>
+                <div class="form-group"><label class="form-label">State</label><input class="form-input" id="sh-state" placeholder="State" required></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Zip Code</label><input class="form-input" id="sh-zip" placeholder="28001" required></div>
+                <div class="form-group"><label class="form-label">Country</label>
+                  <select class="form-input" id="sh-country"><option>United States</option><option>United Kingdom</option><option>Spain</option><option>India</option><option>Germany</option></select>
+                </div>
+              </div>
+              <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="sh-phone" type="tel" placeholder="+1 (555) 000-0000"></div>
+            </div>
+            <div class="glass" style="padding:28px">
+              <h3 style="font-family:var(--font-accent);font-size:1.1rem;margin-bottom:20px">Payment Method</h3>
+              <div style="display:flex;gap:12px;margin-bottom:20px">
+                <button type="button" class="btn btn-primary btn-sm pay-btn" data-pay="Credit Card" onclick="selectPay(this)">Credit Card</button>
+                <button type="button" class="btn btn-secondary btn-sm pay-btn" data-pay="PayPal" onclick="selectPay(this)">PayPal</button>
+                <button type="button" class="btn btn-secondary btn-sm pay-btn" data-pay="UPI" onclick="selectPay(this)">UPI</button>
+              </div>
+              <div id="card-fields">
+                <div class="form-group"><label class="form-label">Card Number</label><input class="form-input" placeholder="4242 4242 4242 4242"></div>
+                <div class="form-row">
+                  <div class="form-group"><label class="form-label">Expiry</label><input class="form-input" placeholder="MM/YY"></div>
+                  <div class="form-group"><label class="form-label">CVV</label><input class="form-input" placeholder="123" type="password"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Name on Card</label><input class="form-input" placeholder="John Doe"></div>
+              </div>
+            </div>
+          </div>
+          <div class="glass" style="padding:28px;position:sticky;top:96px">
+            <h3 style="font-family:var(--font-accent);font-size:1.1rem;margin-bottom:20px">Order Summary</h3>
+            <div style="margin-bottom:16px">
+              ${cart.map(item => `
+                <div style="display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                  <div style="width:50px;height:60px;border-radius:6px;background:linear-gradient(135deg,#1a1a1a,#2a1015);flex-shrink:0"></div>
+                  <div style="flex:1">
+                    <p style="font-size:0.85rem">${item.name}</p>
+                    <p style="font-size:0.75rem;color:var(--text-muted)">${item.size || ''} · x${item.qty}</p>
+                  </div>
+                  <span style="font-weight:600;font-size:0.9rem">$${(item.price * item.qty).toFixed(2)}</span>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size:0.9rem;color:var(--text-secondary);border-top:1px solid rgba(255,255,255,0.05);padding-top:12px">
+              <div style="display:flex;justify-content:space-between;padding:6px 0"><span>Subtotal</span><span style="color:var(--text-primary)">$${subtotal.toFixed(2)}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0"><span>Shipping</span><span style="color:#22c55e">${shipping === 0 ? 'Free' : '$' + shipping.toFixed(2)}</span></div>
+              <div style="display:flex;justify-content:space-between;padding:6px 0"><span>Tax</span><span style="color:var(--text-primary)">$${tax.toFixed(2)}</span></div>
+            </div>
+            <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;margin-top:8px;display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem">
+              <span>Total</span><span style="font-family:'Bebas Neue';font-size:1.8rem;color:var(--white)">$${total.toFixed(2)}</span>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:20px">Place Order — $${total.toFixed(2)}</button>
+            <p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin-top:12px">🔒 Your payment info is secured with 256-bit encryption</p>
+          </div>
+        </div>
+        </form>
+      `;
+
+            let paymentMethod = 'Credit Card';
+            window.selectPay = function (btn) {
+                document.querySelectorAll('.pay-btn').forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
+                btn.classList.remove('btn-secondary'); btn.classList.add('btn-primary');
+                paymentMethod = btn.dataset.pay;
+                document.getElementById('card-fields').style.display = paymentMethod === 'Credit Card' ? '' : 'none';
+            };
+
+            document.getElementById('checkout-form').addEventListener('submit', function (e) {
+                e.preventDefault();
+                const shippingData = {
+                    name: document.getElementById('sh-first').value + ' ' + document.getElementById('sh-last').value,
+                    street: document.getElementById('sh-address').value,
+                    city: document.getElementById('sh-city').value,
+                    state: document.getElementById('sh-state').value,
+                    zip: document.getElementById('sh-zip').value,
+                    country: document.getElementById('sh-country').value,
+                    phone: document.getElementById('sh-phone').value
+                };
+                const order = placeOrder(shippingData, paymentMethod);
+                if (order) {
+                    window.location.href = 'payment-success.html?order=' + order.id;
+                } else {
+                    showToast('Failed to place order', 'error');
+                }
+            });
+        }
+    </script>
+    <style>
+        @media(max-width:768px) {
+            #checkout-layout {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    </style>
+</body>
+
+</html>

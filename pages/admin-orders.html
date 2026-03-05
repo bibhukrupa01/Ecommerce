@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Orders — DRIP YARD">
+    <title>Admin Orders — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="admin-layout">
+        <div id="sidebar-container"></div>
+        <main class="admin-main">
+            <div class="admin-header">
+                <div>
+                    <button class="btn btn-icon btn-secondary" style="display:none" id="sidebar-toggle"
+                        onclick="toggleAdminSidebar()">☰</button>
+                    <h1>Orders</h1>
+                    <p style="color:var(--text-muted);font-size:0.9rem">Manage all customer orders</p>
+                </div>
+            </div>
+            <div class="glass" style="padding:24px">
+                <div id="orders-table"></div>
+            </div>
+        </main>
+    </div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('sidebar-container').innerHTML = getAdminSidebarHTML('admin-orders.html');
+        initBurgerMenu();
+
+        function renderOrders() {
+            const orders = getOrders();
+            const users = getAllUsers();
+            document.getElementById('orders-table').innerHTML = `
+        <div class="table-wrapper">
+          <table class="table">
+            <thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${orders.map(o => {
+                const u = users.find(u => u.id === o.userId);
+                return `<tr>
+                  <td style="color:var(--gold)">#${o.id}</td>
+                  <td>${u ? u.firstName + ' ' + u.lastName : 'Unknown'}</td>
+                  <td>${o.items.reduce((s, i) => s + i.qty, 0)}</td>
+                  <td>$${o.total.toFixed(2)}</td>
+                  <td>${o.payment}</td>
+                  <td>
+                    <select class="form-input" style="padding:4px 8px;font-size:0.75rem;width:auto" onchange="updateOrderStatus('${o.id}',this.value);showToast('Order status updated');renderOrders()">
+                      ${['processing', 'shipped', 'delivered', 'cancelled'].map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
+                    </select>
+                  </td>
+                  <td>${formatDate(o.date)}</td>
+                  <td><a href="order-details.html?id=${o.id}" style="color:var(--red-primary);font-size:0.8rem">View</a></td>
+                </tr>`;
+            }).join('')}
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-top:12px">${orders.length} orders total</p>
+      `;
+        }
+        renderOrders();
+    </script>
+    <style>
+        @media(max-width:768px) {
+            #sidebar-toggle {
+                display: flex !important
+            }
+        }
+    </style>
+</body>
+
+</html>

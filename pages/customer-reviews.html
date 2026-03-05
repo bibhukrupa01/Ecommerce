@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Customer reviews at DRIP YARD">
+    <title>Reviews — DRIP YARD</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+    <div id="navbar-container"></div>
+    <div class="page-wrapper">
+        <div class="container" style="padding-top:32px;padding-bottom:60px">
+            <div class="flex-between" style="margin-bottom:32px;flex-wrap:wrap;gap:12px">
+                <h1 style="font-size:2.5rem">Customer <span class="text-red">Reviews</span></h1>
+                <a href="review-submission.html" class="btn btn-primary btn-sm">Write a Review</a>
+            </div>
+            <div id="reviews-content"></div>
+        </div>
+    </div>
+    <div id="footer-container"></div>
+    <div id="cart-btn-container"></div>
+    <script src="../js/app.js"></script>
+    <script>
+        document.getElementById('navbar-container').innerHTML = getNavbarHTML();
+        document.getElementById('footer-container').innerHTML = getFooterHTML();
+        document.getElementById('cart-btn-container').innerHTML = getCartButtonHTML();
+        initBurgerMenu();
+
+        const reviews = getApprovedReviews();
+        const products = getProducts();
+        const rc = document.getElementById('reviews-content');
+
+        // Rating overview
+        const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : '0.0';
+        const ratingDist = [5, 4, 3, 2, 1].map(star => {
+            const count = reviews.filter(r => r.rating === star).length;
+            const pct = reviews.length > 0 ? Math.round(count / reviews.length * 100) : 0;
+            return { star, count, pct };
+        });
+
+        rc.innerHTML = `
+      <div class="glass" style="padding:28px;margin-bottom:32px">
+        <div style="display:flex;gap:40px;align-items:center;flex-wrap:wrap">
+          <div style="text-align:center;min-width:140px">
+            <div style="font-family:'Bebas Neue';font-size:4rem;color:var(--white)">${avgRating}</div>
+            <div style="color:var(--gold);font-size:1.2rem;margin-bottom:4px">${'★'.repeat(Math.round(avgRating))}${'☆'.repeat(5 - Math.round(avgRating))}</div>
+            <p style="font-size:0.85rem;color:var(--text-muted)">${reviews.length} reviews</p>
+          </div>
+          <div style="flex:1;min-width:200px">
+            ${ratingDist.map(d => `
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:0.8rem;color:var(--text-muted);width:20px">${d.star}★</span>
+                <div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden"><div style="height:100%;width:${d.pct}%;background:var(--gold);border-radius:3px"></div></div>
+                <span style="font-size:0.8rem;color:var(--text-muted);width:30px">${d.count}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+      <div id="reviews-list">
+        ${reviews.length > 0 ? reviews.map(r => {
+            const prod = products.find(p => p.id === r.productId);
+            return `
+            <div class="glass-card" style="padding:24px;margin-bottom:16px">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+                <div style="width:40px;height:40px;border-radius:50%;background:rgba(196,30,58,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--red-primary)">${r.userName.charAt(0)}</div>
+                <div>
+                  <h4 style="font-size:0.95rem">${r.userName}</h4>
+                  <p style="font-size:0.75rem;color:var(--text-muted)">${formatDate(r.date)} ${prod ? '· ' + prod.name : ''}</p>
+                </div>
+                <div style="margin-left:auto;color:var(--gold)">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+              </div>
+              <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.6">${r.text}</p>
+            </div>`;
+        }).join('') : '<div style="text-align:center;padding:40px;color:var(--text-muted)"><p style="font-size:3rem;margin-bottom:12px">⭐</p><h3>No reviews yet</h3><p style="margin-top:8px">Be the first to share your experience!</p></div>'}
+      </div>
+    `;
+    </script>
+</body>
+
+</html>
