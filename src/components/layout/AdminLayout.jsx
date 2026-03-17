@@ -17,7 +17,6 @@ export default function AdminLayout() {
     { name: 'Customers', path: '/admin/users', icon: <Users size={18} /> },
     { name: 'Reviews', path: '/admin/reviews', icon: <MessageSquare size={18} /> },
     { name: 'Coupons', path: '/admin/coupons', icon: <Ticket size={18} /> },
-    { name: 'Settings', path: '/admin/settings', icon: <Settings size={18} /> },
   ];
 
   const handleLogout = () => {

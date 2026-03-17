@@ -3,8 +3,11 @@ import Layout from './components/layout/Layout';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import Category from './pages/Category';
+import ProductDetails from './pages/ProductDetails';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import UserProfile from './pages/UserProfile';
 import AdminLayout from './components/layout/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import Orders from './pages/admin/Orders';
@@ -27,15 +30,16 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<Home />} />
         <Route path="category" element={<Category />} />
-        <Route path="product/:id" element={<Placeholder title="PRODUCT DETAILS" />} />
+        <Route path="product/:id" element={<ProductDetails />} />
         <Route path="cart" element={<Cart />} />
         <Route path="wishlist" element={<Placeholder title="MY WISHLIST" />} />
-        <Route path="user-profile" element={<Placeholder title="USER PROFILE" />} />
+        <Route path="profile" element={<UserProfile />} />
         <Route path="my-orders" element={<Placeholder title="MY ORDERS" />} />
         <Route path="customer-reviews" element={<Placeholder title="REVIEWS" />} />
         <Route path="help-submission" element={<Placeholder title="SUPPORT" />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
+        <Route path="forgot-password" element={<ForgotPassword />} />
       </Route>
       
       <Route path="/" element={<Layout minimal={true} />}>

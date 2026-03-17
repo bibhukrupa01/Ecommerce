@@ -61,7 +61,7 @@ export default function Navbar({ minimal }) {
             )}
             
             {isLoggedIn ? (
-              <Link to="/user-profile" className="nav-user-btn" title="Profile">{initial}</Link>
+              <Link to="/profile" className="nav-user-btn" title="Profile">{initial}</Link>
             ) : (
               <>
                 <Link to="/login" className="btn btn-ghost btn-sm text-text-secondary">Login</Link>
@@ -85,7 +85,7 @@ export default function Navbar({ minimal }) {
           <>
             <Link to="/wishlist">Wishlist</Link>
             <Link to="/my-orders">My Orders</Link>
-            <Link to="/user-profile">Profile</Link>
+            <Link to="/profile">Profile</Link>
             <button onClick={() => { logout(); setMobileActive(false); }} className="text-red-primary font-heading text-2xl tracking-[4px] uppercase mt-4 hover:translate-x-[10px] transition-transform">Logout</button>
           </>
         ) : (
