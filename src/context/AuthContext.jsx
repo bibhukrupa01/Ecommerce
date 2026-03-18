@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { auth } from '../config/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth, db } from '../config/firebase';
+import { 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  sendPasswordResetEmail,
+  signOut
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -20,31 +28,46 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const fbUser = userCredential.user;
       
-      const data = await response.json();
+      const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
+      let finalUser;
       
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        finalUser = {
+          id: fbUser.uid,
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          role: data.role || 'user'
+        };
+      } else {
+        // Fallback if missing
+        finalUser = {
+          id: fbUser.uid,
+          email: fbUser.email,
+          firstName: 'User',
+          lastName: '',
+          role: 'user'
+        };
       }
 
-      localStorage.setItem('dripyard_token', data.token);
-      localStorage.setItem('dripyard_current_user', JSON.stringify(data.user));
-      setUser(data.user);
-      return true;
+      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
+      setUser(finalUser);
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
-      // In a real app we'd throw this to show to the user, 
-      // but returning false to keep existing component logic working
-      return false; 
+      return { success: false, message: error.message }; 
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch(e) {}
     localStorage.removeItem('dripyard_token');
     localStorage.removeItem('dripyard_current_user');
     setUser(null);
@@ -52,45 +75,42 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: data.firstName,
-          lastName: data.lastName,
-          email: data.email,
-          password: data.password
-        })
-      });
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      const fbUser = userCredential.user;
+      
+      const userData = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        role: 'user',
+        uid: fbUser.uid,
+        createdAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, 'users', fbUser.uid), userData);
+      
+      const finalUser = {
+        id: fbUser.uid,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: 'user'
+      };
 
-      const responseData = await response.json();
-
-      if (!response.ok) {
-         throw new Error(responseData.message || 'Registration failed');
-      }
-
-      localStorage.setItem('dripyard_token', responseData.token);
-      localStorage.setItem('dripyard_current_user', JSON.stringify(responseData.user));
-      setUser(responseData.user);
-      return true;
+      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
+      setUser(finalUser);
+      return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
-      return false;
+      return { success: false, message: error.message }; 
     }
   };
 
   const forgotPassword = async (email) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to send reset email');
-      }
-      return { success: true, message: data.message };
+      await sendPasswordResetEmail(auth, email);
+      return { success: true, message: 'Password reset email sent' };
     } catch (error) {
       console.error('Forgot password error:', error);
       return { success: false, message: error.message };
@@ -101,27 +121,52 @@ export const AuthProvider = ({ children }) => {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const idToken = await result.user.getIdToken();
+      const fbUser = result.user;
       
-      const response = await fetch('http://localhost:5000/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: idToken })
-      });
+      const userDocRef = doc(db, 'users', fbUser.uid);
+      const userDoc = await getDoc(userDocRef);
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Google Login failed');
+      let finalUser;
+      if (!userDoc.exists()) {
+        const nameParts = fbUser.displayName ? fbUser.displayName.split(' ') : ['Google', 'User'];
+        const firstName = nameParts[0];
+        const lastName = nameParts.slice(1).join(' ');
+        
+        const userData = {
+          firstName,
+          lastName,
+          email: fbUser.email,
+          role: 'user',
+          uid: fbUser.uid,
+          createdAt: serverTimestamp()
+        };
+        await setDoc(userDocRef, userData);
+        
+        finalUser = {
+          id: fbUser.uid,
+          email: fbUser.email,
+          firstName,
+          lastName,
+          role: 'user'
+        };
+      } else {
+        const data = userDoc.data();
+        finalUser = {
+          id: fbUser.uid,
+          email: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          role: data.role || 'user'
+        };
       }
 
-      localStorage.setItem('dripyard_token', data.token);
-      localStorage.setItem('dripyard_current_user', JSON.stringify(data.user));
-      setUser(data.user);
-      return true;
+      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
+      setUser(finalUser);
+      return { success: true };
     } catch (error) {
       console.error('Google login error:', error);
-      return false;
+      return { success: false, message: error.message };
     }
   };
 

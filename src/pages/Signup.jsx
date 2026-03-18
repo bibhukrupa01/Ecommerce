@@ -18,11 +18,11 @@ export default function Signup() {
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    const success = await loginWithGoogle();
-    if (success) {
+    const result = await loginWithGoogle();
+    if (result.success) {
       navigate('/');
     } else {
-      setError('Google Sign-In failed. Please try again.');
+      setError(result.message || 'Google Sign-In failed. Please try again.');
     }
   };
 
@@ -35,11 +35,11 @@ export default function Signup() {
       return;
     }
 
-    const success = await register({ firstName, lastName, email, password });
-    if (success) {
+    const result = await register({ firstName, lastName, email, password });
+    if (result.success) {
       navigate('/');
     } else {
-      setError('An account with this email already exists or registration failed.');
+      setError(result.message || 'An account with this email already exists or registration failed.');
     }
   };
 

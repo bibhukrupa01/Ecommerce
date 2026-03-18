@@ -14,11 +14,11 @@ export default function Login() {
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    const success = await loginWithGoogle();
-    if (success) {
+    const result = await loginWithGoogle();
+    if (result.success) {
       navigate('/');
     } else {
-      setError('Google Sign-In failed. Please try again.');
+      setError(result.message || 'Google Sign-In failed. Please try again.');
     }
   };
 
@@ -26,13 +26,13 @@ export default function Login() {
     e.preventDefault();
     setError('');
     
-    const success = await login(email, password);
-    if (success) {
+    const result = await login(email, password);
+    if (result.success) {
       // Get the latest user right from the context next render, or just navigate
       // Since context state updates asynchronously, we can rely on navigating
       navigate('/');
     } else {
-      setError('Invalid email or password. Try again.');
+      setError(result.message || 'Invalid email or password. Try again.');
     }
   };
 
