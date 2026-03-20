@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "../config/firebase";
+
 
 const ProductContext = createContext();
 
@@ -15,14 +14,14 @@ export const ProductProvider = ({ children }) => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const productsRef = collection(db, "products");
-        const q = query(productsRef, orderBy("createdAt", "desc"));
-        const querySnapshot = await getDocs(q);
+        // Fetch from Express Backend instead of direct Firestore
+        const response = await fetch('http://localhost:5000/api/products');
         
-        const productsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const productsData = await response.json();
         
         setProducts(productsData);
         setError(null);
@@ -36,6 +35,7 @@ export const ProductProvider = ({ children }) => {
 
     fetchProducts();
   }, []);
+
 
   const getProductById = (id) => products.find(p => p.id === id);
 

@@ -8,21 +8,14 @@ dotenv.config();
 const initializeFirebase = () => {
   try {
     if (admin.apps.length === 0) {
-      const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || '../serviceAccountKey.json';
-      const absolutePath = path.resolve(__dirname, serviceAccountPath);
-      const serviceAccount = require(absolutePath);
+      const serviceAccount = require(path.resolve(__dirname, '../serviceAccountKey.json'));
       
-      // Fix for newline escaping issues
-      if (serviceAccount.private_key) {
-        serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-      }
-
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id
+        credential: admin.credential.cert(serviceAccount)
       });
       
       console.log('Firebase Admin SDK initialized successfully');
+
     }
   } catch (error) {
     console.error('Failed to initialize Firebase Admin SDK:', error.message);

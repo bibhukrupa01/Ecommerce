@@ -1,0 +1,55 @@
+const { db } = require('../config/firebase');
+
+// @desc    Get all products
+// @route   GET /api/products
+// @access  Public
+const getProducts = async (req, res) => {
+  try {
+    const productsRef = db.collection('products');
+    const snapshot = await productsRef.orderBy('createdAt', 'desc').get();
+    
+    if (snapshot.empty) {
+      return res.status(200).json([]);
+    }
+
+    const products = [];
+    snapshot.forEach(doc => {
+      products.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error('Error fetching products from Firebase:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+// @desc    Get product by ID
+// @route   GET /api/products/:id
+// @access  Public
+const getProductById = async (req, res) => {
+  try {
+    const productRef = db.collection('products').doc(req.params.id);
+    const doc = await productRef.get();
+    
+    if (!doc.exists) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+
+    res.status(200).json({
+      id: doc.id,
+      ...doc.data()
+    });
+  } catch (error) {
+    console.error('Error fetching product from Firebase:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+module.exports = {
+  getProducts,
+  getProductById
+};

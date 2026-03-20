@@ -179,6 +179,7 @@ const googleLogin = async (req, res) => {
     const { uid, email, name } = decodedToken;
     
     let userDoc = await db.collection('users').doc(uid).get();
+
     
     if (!userDoc.exists) {
       // Split display name into first and last
@@ -212,7 +213,7 @@ const googleLogin = async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Google Login Error Details:', error);
+    console.error('Google Login Full Error:', error);
     res.status(500).json({ 
       message: `Google Login Error: ${error.message}`, 
       code: error.code
