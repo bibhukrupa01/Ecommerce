@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Firebase & Env sensitive files
+backend/serviceAccountKey.json
+backend/.env
+.env
+.env.local
+node_modules/
+dist/
+dist-ssr/
+
