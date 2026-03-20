@@ -28,33 +28,24 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const fbUser = userCredential.user;
-      
-      const userDoc = await getDoc(doc(db, 'users', fbUser.uid));
-      let finalUser;
-      
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        finalUser = {
-          id: fbUser.uid,
-          email: data.email,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          role: data.role || 'user'
-        };
-      } else {
-        // Fallback if missing
-        finalUser = {
-          id: fbUser.uid,
-          email: fbUser.email,
-          firstName: 'User',
-          lastName: '',
-          role: 'user'
-        };
+      // Call backend login endpoint
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
       }
 
-      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      const data = await response.json();
+      const finalUser = data.user;
+      
+      // Also sign in on the frontend with the token if we want to keep the Firebase session
+      // For now, we'll just store information locally as before.
+      localStorage.setItem('dripyard_token', data.token);
       localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
       setUser(finalUser);
       return { success: true };
@@ -63,6 +54,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: error.message }; 
     }
   };
+
 
   const logout = async () => {
     try {
@@ -75,20 +67,32 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     try {
+      // 1. Create user in Firebase Auth (Frontend)
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const fbUser = userCredential.user;
+      const idToken = await fbUser.getIdToken();
       
-      const userData = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        role: 'user',
-        uid: fbUser.uid,
-        createdAt: serverTimestamp()
-      };
-      
-      await setDoc(doc(db, 'users', fbUser.uid), userData);
-      
+      // 2. Sync with backend (which creates the Firestore document with Admin privileges)
+      // Note: We use the register endpoint or a new sync endpoint.
+      // Since the user is already created in Auth, we can just call our backend to create the doc.
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: fbUser.uid, // Backend should handle if user already exists in Auth
+          email: data.email,
+          password: data.password, // Backend needs this for its own createUser call if we use the existing register endpoint
+          firstName: data.firstName,
+          lastName: data.lastName
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to sync user with backend');
+      }
+
+      const backendData = await response.json();
       const finalUser = {
         id: fbUser.uid,
         email: data.email,
@@ -97,12 +101,13 @@ export const AuthProvider = ({ children }) => {
         role: 'user'
       };
 
-      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      localStorage.setItem('dripyard_token', idToken);
       localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
       setUser(finalUser);
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
+      // If it's the "Email already exists" from backend after frontend success, we can try to recover
       return { success: false, message: error.message }; 
     }
   };
@@ -118,49 +123,30 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginWithGoogle = async () => {
+
     const provider = new GoogleAuthProvider();
     try {
+      // 1. Sign in with Google (Frontend)
       const result = await signInWithPopup(auth, provider);
       const fbUser = result.user;
+      const token = await fbUser.getIdToken();
       
-      const userDocRef = doc(db, 'users', fbUser.uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      let finalUser;
-      if (!userDoc.exists()) {
-        const nameParts = fbUser.displayName ? fbUser.displayName.split(' ') : ['Google', 'User'];
-        const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(' ');
-        
-        const userData = {
-          firstName,
-          lastName,
-          email: fbUser.email,
-          role: 'user',
-          uid: fbUser.uid,
-          createdAt: serverTimestamp()
-        };
-        await setDoc(userDocRef, userData);
-        
-        finalUser = {
-          id: fbUser.uid,
-          email: fbUser.email,
-          firstName,
-          lastName,
-          role: 'user'
-        };
-      } else {
-        const data = userDoc.data();
-        finalUser = {
-          id: fbUser.uid,
-          email: data.email,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          role: data.role || 'user'
-        };
+      // 2. Call backend to verify and ensure user exists in Firestore (Admin privileges)
+      const response = await fetch('http://localhost:5000/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Backend Google Authentication failed');
       }
 
-      localStorage.setItem('dripyard_token', await fbUser.getIdToken());
+      const backendData = await response.json();
+      const finalUser = backendData.user;
+
+      localStorage.setItem('dripyard_token', token);
       localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
       setUser(finalUser);
       return { success: true };

@@ -7,37 +7,49 @@ const registerUser = async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
-    if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ message: 'All fields are required' });
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({ message: 'Required fields are missing' });
     }
 
-    // 1. Create User in Firebase Authentication
-    const userRecord = await auth.createUser({
-      email,
-      password,
-      displayName: `${firstName} ${lastName}`,
-    });
+    let userRecord;
+    try {
+      // 1. Try to create User in Firebase Authentication
+      userRecord = await auth.createUser({
+        email,
+        password: password || undefined,
+        displayName: `${firstName} ${lastName}`,
+      });
+    } catch (error) {
+      // 2. If user already exists, fetch them instead of erroring
+      if (error.code === 'auth/email-already-exists') {
+        userRecord = await auth.getUserByEmail(email);
+      } else {
+        throw error;
+      }
+    }
 
-    // 2. Store additional user info in Firestore
+    // 3. Store/Update user info in Firestore using Admin SDK (bypasses rules)
     const userDoc = {
       email,
       firstName,
       lastName,
-      role: 'user', // default role
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      role: 'user',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       uid: userRecord.uid
     };
 
-    await db.collection('users').doc(userRecord.uid).set(userDoc);
+    // Check if it already has createdAt
+    const existingDoc = await db.collection('users').doc(userRecord.uid).get();
+    if (!existingDoc.exists) {
+      userDoc.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    }
 
-    // 3. (Optional for Option A) Create a Custom JWT for your backend,
-    //    or just return the minimal user object and have the frontend handle session.
-    // Since Firebase doesn't natively return an ID Token on createUser (it only does on the client SDK),
-    // we can create a custom token to send to the client.
+    await db.collection('users').doc(userRecord.uid).set(userDoc, { merge: true });
+
     const customToken = await auth.createCustomToken(userRecord.uid, { role: 'user' });
 
     res.status(201).json({
-      message: 'User registered successfully',
+      message: 'User processed successfully',
       user: {
         id: userRecord.uid,
         email,
@@ -50,17 +62,13 @@ const registerUser = async (req, res) => {
 
   } catch (error) {
     console.error('Registration Error:', error);
-    // Handle specific Firebase errors (e.g., email already exists)
-    if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({ message: 'Email is already in use' });
-    }
     if (error.code === 'auth/invalid-password') {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
-    
-    res.status(500).json({ message: 'Server Error during registration' });
+    res.status(500).json({ message: 'Server Error during registration: ' + error.message });
   }
 };
+
 
 // @desc    Login user
 // @route   POST /api/auth/login
@@ -204,10 +212,15 @@ const googleLogin = async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Google Login Error:', error);
-    res.status(500).json({ message: 'Server Error during Google authentication' });
+    console.error('Google Login Error Details:', error);
+    res.status(500).json({ 
+      message: `Google Login Error: ${error.message}`, 
+      code: error.code
+    });
   }
 };
+
+
 
 module.exports = {
   registerUser,

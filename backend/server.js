@@ -1,13 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { initializeFirebase } = require('./config/firebase');
+const { admin, db, auth } = require('./config/firebase');
 
 // Load environment variables
 dotenv.config();
 
-// Initialize Firebase (happens automatically when we require the config)
-require('./config/firebase');
+// Initialize Firebase occurs when we import from config above.
 
 const app = express();
 
