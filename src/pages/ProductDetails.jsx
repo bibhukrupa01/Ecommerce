@@ -6,16 +6,42 @@ import ProductCard from '../components/ui/ProductCard';
 
 export default function ProductDetails() {
   const { id } = useParams();
-  const { getProductById, products } = useProduct();
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
+  const { products } = useProduct(); // For related products
   
-  const product = getProductById(id);
-  
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState('desc-tab');
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:5000/api/products/${id}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('Product not found');
+          }
+          throw new Error('Failed to fetch product details');
+        }
+        const data = await response.json();
+        setProduct(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
 
   useEffect(() => {
     // Reset state when product changes
@@ -30,14 +56,30 @@ export default function ProductDetails() {
 
   useEffect(() => {
     const storedReviews = JSON.parse(localStorage.getItem('dripyard_reviews') || '[]');
-    setReviews(storedReviews.filter(r => r.productId === Number(id)));
+    // Try both numeric and string IDs just in case
+    setReviews(storedReviews.filter(r => String(r.productId) === String(id)));
   }, [id]);
 
-  if (!product) {
+  if (loading) {
     return (
       <div className="container py-20 text-center min-h-[50vh] flex flex-col justify-center items-center">
-        <h2 className="text-4xl text-white font-heading tracking-[4px] mb-4">Product not found</h2>
-        <p className="text-text-secondary mt-3">The product you are looking for does not exist.</p>
+        <div className="w-12 h-12 border-4 border-red-primary/20 border-t-red-primary rounded-full animate-spin mb-4"></div>
+        <p className="text-text-secondary">Loading product details...</p>
+      </div>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <div className="container py-20 text-center min-h-[50vh] flex flex-col justify-center items-center">
+        <h2 className="text-4xl text-white font-heading tracking-[4px] mb-4">
+          {error === 'Product not found' ? 'Product not found' : 'Error'}
+        </h2>
+        <p className="text-text-secondary mt-3">
+          {error === 'Product not found' 
+            ? 'The product you are looking for does not exist.' 
+            : 'Something went wrong while loading the product. Please try again later.'}
+        </p>
         <Link to="/category" className="btn btn-primary mt-6 inline-block">Browse Products</Link>
       </div>
     );
@@ -84,14 +126,31 @@ export default function ProductDetails() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start" id="product-detail">
           {/* Images */}
           <div>
-            <div className="glass aspect-[3/4] flex items-center justify-center mb-4 overflow-hidden rounded-lg">
-              <div className="font-heading text-5xl text-red-primary/20 tracking-[6px]">DRIP YARD</div>
+            <div className="glass aspect-[3/4] flex items-center justify-center mb-4 overflow-hidden rounded-lg group">
+              {(product.images && product.images.length > 0) || product.image ? (
+                <img 
+                  src={product.images?.[0] || product.image} 
+                  alt={product.name} 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+              ) : (
+                <div className="font-heading text-5xl text-red-primary/20 tracking-[6px]">DRIP YARD</div>
+              )}
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {['Front', 'Back', 'Side', 'Detail'].map((label, idx) => (
-                <div key={idx} className={`glass aspect-square flex items-center justify-center cursor-pointer text-xs transition-colors ${idx === 0 ? 'border-red-primary text-white' : 'text-text-muted hover:text-white hover:border-white/20'}`}>
-                  {label}
+              {(product.images?.length > 0 ? product.images : [product.image]).slice(0, 4).map((img, idx) => (
+                <div key={idx} className={`glass aspect-square flex items-center justify-center cursor-pointer text-xs transition-colors overflow-hidden ${idx === 0 ? 'border-red-primary text-white' : 'text-text-muted hover:text-white hover:border-white/20'}`}>
+                  {img ? (
+                    <img src={img} alt={`${product.name} thumbnail`} className="w-full h-full object-cover opacity-50 hover:opacity-100 transition-opacity" />
+                  ) : (
+                    <span>{['Back', 'Side', 'Detail'][idx - 1] || 'View'}</span>
+                  )}
                 </div>
+              ))}
+              {Array.from({ length: Math.max(0, 4 - (product.images?.length || (product.image ? 1 : 0))) }).map((_, idx) => (
+                 <div key={`empty-${idx}`} className="glass aspect-square flex items-center justify-center cursor-pointer text-xs transition-colors text-text-muted hover:text-white hover:border-white/20">
+                    <span>{['Back', 'Side', 'Detail'][idx] || 'View'}</span>
+                 </div>
               ))}
             </div>
           </div>
@@ -104,10 +163,10 @@ export default function ProductDetails() {
              
              <div className="flex items-center gap-3 mb-5">
                <span className="text-gold text-base tracking-widest">
-                  {'★'.repeat(Math.floor(product.rating))}
-                  <span className="opacity-30">{'★'.repeat(5 - Math.floor(product.rating))}</span>
+                  {'★'.repeat(Math.floor(product.rating || 0))}
+                  <span className="opacity-30">{'★'.repeat(5 - Math.floor(product.rating || 0))}</span>
                </span>
-               <span className="text-text-muted text-sm">{product.rating} ({product.reviewCount} reviews)</span>
+               <span className="text-text-muted text-sm">{product.rating || 0} ({product.reviewsCount || product.reviewCount || 0} reviews)</span>
              </div>
 
              <div className="flex items-baseline gap-3 mb-6">
@@ -120,7 +179,7 @@ export default function ProductDetails() {
                 )}
              </div>
 
-             <p className="text-text-secondary leading-relaxed mb-7">{product.desc || ''}</p>
+             <p className="text-text-secondary leading-relaxed mb-7">{product.description || product.desc || ''}</p>
 
              {/* Colors */}
              {product.colors && (
@@ -191,7 +250,7 @@ export default function ProductDetails() {
 
              <div className="tab-content py-2">
                  {activeTab === 'desc-tab' && (
-                     <p className="text-text-secondary leading-relaxed text-sm">{product.desc || 'No description available.'}</p>
+                     <p className="text-text-secondary leading-relaxed text-sm">{product.description || product.desc || 'No description available.'}</p>
                  )}
                  {activeTab === 'spec-tab' && (
                      <div className="text-sm text-text-secondary">
