@@ -1,4 +1,4 @@
-const { db } = require('../config/firebase');
+const { admin, db } = require('../config/firebase');
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -49,7 +49,65 @@ const getProductById = async (req, res) => {
   }
 };
 
+// @desc    Create a new product (Admin only)
+// @route   POST /api/products
+// @access  Private/Admin
+const createProduct = async (req, res) => {
+  try {
+    const data = req.body;
+    data.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    const docRef = await db.collection('products').add(data);
+    const newDoc = await docRef.get();
+    res.status(201).json({ id: docRef.id, ...newDoc.data() });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+// @desc    Update a product (Admin only)
+// @route   PUT /api/products/:id
+// @access  Private/Admin
+const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const productRef = db.collection('products').doc(id);
+    const doc = await productRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    await productRef.update(data);
+    const updatedDoc = await productRef.get();
+    res.status(200).json({ id, ...updatedDoc.data() });
+  } catch (error) {
+    console.error('Error updating product:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+// @desc    Delete a product (Admin only)
+// @route   DELETE /api/products/:id
+// @access  Private/Admin
+const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const productRef = db.collection('products').doc(id);
+    const doc = await productRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ status: 'error', message: 'Product not found' });
+    }
+    await productRef.delete();
+    res.status(200).json({ status: 'success', message: 'Product deleted' });
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
 module.exports = {
   getProducts,
-  getProductById
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct
 };
