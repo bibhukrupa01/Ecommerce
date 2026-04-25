@@ -1,10 +1,18 @@
+const dotenv = require("dotenv");
+const path = require("path");
+// Explicitly load .env from the backend root
+dotenv.config({ path: path.resolve(__dirname, './.env') });
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const { admin, db, auth } = require('./config/firebase');
 
+// Fallback for API Key if .env fails to load intermittently
+if (!process.env.FIREBASE_WEB_API_KEY) {
+  process.env.FIREBASE_WEB_API_KEY = "AIzaSyDwhyyFNV6ud9puMCTJuFFqfQRybb5e3yk";
+}
+
 // Load environment variables
-dotenv.config();
 
 // Initialize Firebase occurs when we import from config above.
 

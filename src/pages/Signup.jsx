@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
@@ -12,8 +12,14 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  const { register, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle, isLoggedIn, loading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && isLoggedIn) {
+      navigate('/');
+    }
+  }, [isLoggedIn, loading, navigate]);
 
   const handleGoogleLogin = async (e) => {
     e.preventDefault();

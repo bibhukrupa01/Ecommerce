@@ -86,7 +86,7 @@ export default function Navbar({ minimal }) {
             <Link to="/wishlist">Wishlist</Link>
             <Link to="/my-orders">My Orders</Link>
             <Link to="/profile">Profile</Link>
-            <button onClick={() => { logout(); setMobileActive(false); }} className="text-red-primary font-heading text-2xl tracking-[4px] uppercase mt-4 hover:translate-x-[10px] transition-transform">Logout</button>
+            <button onClick={() => { logout(); setMobileActive(false); navigate('/login'); }} className="text-red-primary font-heading text-2xl tracking-[4px] uppercase mt-4 hover:translate-x-[10px] transition-transform">Logout</button>
           </>
         ) : (
           <>

@@ -16,14 +16,21 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     // On mount, check if token and user exist
     const token = localStorage.getItem('dripyard_token');
     const savedUser = localStorage.getItem('dripyard_current_user');
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('dripyard_token');
+        localStorage.removeItem('dripyard_current_user');
+      }
     }
+    setLoading(false);
   }, []);
 
   const login = async (email, password) => {
@@ -157,7 +164,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, forgotPassword, loginWithGoogle, isLoggedIn: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, register, forgotPassword, loginWithGoogle, isLoggedIn: !!user, loading }}>
       {children}
     </AuthContext.Provider>
   );
