@@ -20,6 +20,7 @@ export default function Category() {
   const [searchParams] = useSearchParams();
   const urlCat = searchParams.get('cat');
 
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCats, setSelectedCats] = useState(urlCat ? [urlCat] : []);
   const [maxPrice, setMaxPrice] = useState(300);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -50,6 +51,14 @@ export default function Category() {
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
+
+    // Search Query Filter
+    if (searchQuery.trim() !== '') {
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (p.desc && p.desc.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
 
     // Category Filter
     if (selectedCats.length > 0) {
@@ -89,7 +98,7 @@ export default function Category() {
     }
 
     return filtered;
-  }, [products, selectedCats, maxPrice, selectedSize, sortBy]);
+  }, [products, selectedCats, maxPrice, selectedSize, sortBy, searchQuery]);
 
   // Determine Breadcrumb current name
   let breadcrumbName = 'Shop';
@@ -106,6 +115,17 @@ export default function Category() {
         {/* Sidebar Filters */}
         <aside className="glass w-full md:w-[260px] p-6 shrink-0 md:sticky md:top-24 max-md:hidden">
           <h4 className="mb-5 text-base text-white">Filters</h4>
+
+          <div className="mb-6">
+            <h5 className="text-xs uppercase tracking-[1px] text-text-muted mb-3">Search</h5>
+            <input 
+              type="text" 
+              placeholder="Search products..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/30 border border-white/10 rounded-md p-2 text-white text-sm focus:border-red-primary outline-none"
+            />
+          </div>
           
           <div className="mb-6">
             <h5 className="text-xs uppercase tracking-[1px] text-text-muted mb-3">Category</h5>

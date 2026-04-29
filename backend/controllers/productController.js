@@ -104,10 +104,58 @@ const deleteProduct = async (req, res) => {
     res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
 };
+const getProductReviews = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const reviewsRef = db.collection('products').doc(id).collection('reviews');
+    const snapshot = await reviewsRef.orderBy('createdAt', 'desc').get();
+    const reviews = [];
+    snapshot.forEach(doc => {
+      reviews.push({ id: doc.id, ...doc.data() });
+    });
+    res.status(200).json(reviews);
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+const addProductReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment, userName } = req.body;
+    const uid = req.user.uid || req.user.id || req.user.sub;
+    
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ status: 'error', message: 'Valid rating between 1 and 5 is required' });
+    }
+
+    const reviewData = {
+      userId: uid,
+      userName: userName || 'Anonymous',
+      rating: Number(rating),
+      comment: comment || '',
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const reviewRef = await db.collection('products').doc(id).collection('reviews').add(reviewData);
+    const newReview = await reviewRef.get();
+    
+    // Optional: Update product's average rating here
+
+    res.status(201).json({ id: reviewRef.id, ...newReview.data() });
+  } catch (error) {
+    console.error('Error adding review:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getProductReviews,
+  addProductReview
 };

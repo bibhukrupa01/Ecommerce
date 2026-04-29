@@ -54,11 +54,62 @@ export default function ProductDetails() {
     }
   }, [product]);
 
+  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   useEffect(() => {
-    const storedReviews = JSON.parse(localStorage.getItem('dripyard_reviews') || '[]');
-    // Try both numeric and string IDs just in case
-    setReviews(storedReviews.filter(r => String(r.productId) === String(id)));
+    const fetchReviews = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/products/${id}/reviews`);
+        if (res.ok) {
+          const data = await res.json();
+          setReviews(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch reviews:', err);
+      }
+    };
+    fetchReviews();
   }, [id]);
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    setSubmittingReview(true);
+    const token = localStorage.getItem('dripyard_token');
+    if (!token) {
+      alert('Please log in to submit a review');
+      setSubmittingReview(false);
+      return;
+    }
+    const userStr = localStorage.getItem('dripyard_current_user');
+    const user = userStr ? JSON.parse(userStr) : {};
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/products/${id}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          rating: newReview.rating,
+          comment: newReview.comment,
+          userName: user.firstName ? `${user.firstName} ${user.lastName || ''}` : 'User'
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to submit review');
+      const data = await res.json();
+      setReviews([data, ...reviews]);
+      setNewReview({ rating: 5, comment: '' });
+      alert('Review submitted successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Error submitting review');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -265,22 +316,55 @@ export default function ProductDetails() {
                          {reviews.length > 0 ? reviews.map(r => (
                              <div key={r.id} className="glass-card mb-3 p-4 rounded-lg bg-black/10 border border-white/5">
                                  <div className="flex items-center gap-3 mb-2">
-                                     <div className="w-8 h-8 rounded-full bg-red-primary/10 flex items-center justify-center font-bold text-red-primary text-xs shrink-0">{r.userName.charAt(0)}</div>
+                                     <div className="w-8 h-8 rounded-full bg-red-primary/10 flex items-center justify-center font-bold text-red-primary text-xs shrink-0">{r.userName?.charAt(0) || 'U'}</div>
                                      <div className="flex-1">
-                                         <strong className="text-sm text-white block">{r.userName}</strong>
-                                         <p className="text-xs text-text-muted mt-0.5">{formatDate(r.date)}</p>
+                                         <strong className="text-sm text-white block">{r.userName || 'Anonymous'}</strong>
+                                         <p className="text-xs text-text-muted mt-0.5">{formatDate(r.createdAt ? (r.createdAt._seconds ? r.createdAt._seconds * 1000 : r.createdAt) : new Date())}</p>
                                      </div>
                                      <div className="text-gold text-sm tracking-widest flex">
-                                        {'★'.repeat(Math.floor(r.rating))}
-                                        <span className="opacity-30">{'★'.repeat(5 - Math.floor(r.rating))}</span>
+                                        {'★'.repeat(Math.max(0, Math.floor(r.rating || 0)))}
+                                        <span className="opacity-30">{'★'.repeat(Math.max(0, 5 - Math.floor(r.rating || 0)))}</span>
                                      </div>
                                  </div>
-                                 <p className="text-sm text-text-secondary">{r.text}</p>
+                                 <p className="text-sm text-text-secondary">{r.comment}</p>
                              </div>
                          )) : (
                              <p className="text-text-muted py-5 text-sm">No reviews yet. Be the first!</p>
                          )}
-                         <Link to="/customer-reviews" className="btn btn-secondary mt-4 w-full md:w-auto inline-block text-center">Write a Review</Link>
+                         
+                         <div className="mt-8 border-t border-white/10 pt-6">
+                           <h4 className="text-white font-accent mb-4">Write a Review</h4>
+                           <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+                             <div>
+                               <label className="text-xs text-text-muted uppercase mb-1 block">Rating</label>
+                               <select 
+                                 className="bg-black/30 border border-white/10 rounded-md p-2 text-white outline-none w-full max-w-[200px]"
+                                 value={newReview.rating}
+                                 onChange={(e) => setNewReview({...newReview, rating: Number(e.target.value)})}
+                               >
+                                 <option value={5}>5 Stars - Excellent</option>
+                                 <option value={4}>4 Stars - Good</option>
+                                 <option value={3}>3 Stars - Average</option>
+                                 <option value={2}>2 Stars - Poor</option>
+                                 <option value={1}>1 Star - Terrible</option>
+                               </select>
+                             </div>
+                             <div>
+                               <label className="text-xs text-text-muted uppercase mb-1 block">Your Review</label>
+                               <textarea 
+                                 rows="3" 
+                                 required
+                                 className="w-full bg-black/30 border border-white/10 rounded-md p-3 text-white text-sm outline-none focus:border-red-primary resize-y"
+                                 placeholder="What did you think about this product?"
+                                 value={newReview.comment}
+                                 onChange={(e) => setNewReview({...newReview, comment: e.target.value})}
+                               ></textarea>
+                             </div>
+                             <button type="submit" disabled={submittingReview} className="btn btn-primary self-start">
+                               {submittingReview ? 'Submitting...' : 'Submit Review'}
+                             </button>
+                           </form>
+                         </div>
                      </div>
                  )}
              </div>

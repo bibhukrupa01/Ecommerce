@@ -12,29 +12,38 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     if (isLoggedIn) {
-      // Fetch cart and wishlist from backend for logged-in user
-      fetch('/api/cart', { method: 'GET', credentials: 'include' })
+      const token = localStorage.getItem('dripyard_token');
+      const headers = { 'Authorization': `Bearer ${token}` };
+      
+      // Fetch cart
+      fetch('http://localhost:5000/api/users/cart', { headers })
         .then(res => res.json())
-        .then(data => {
-          if (data.cart) setCart(data.cart);
-          if (data.wishlist) setWishlist(data.wishlist);
-        })
+        .then(data => { if (data.cart) setCart(data.cart); })
         .catch(err => console.error('Failed to load cart from backend:', err));
+        
+      // Fetch wishlist
+      fetch('http://localhost:5000/api/users/wishlist', { headers })
+        .then(res => res.json())
+        .then(data => { if (data.wishlist) setWishlist(data.wishlist); })
+        .catch(err => console.error('Failed to load wishlist from backend:', err));
     } else {
       const savedCart = localStorage.getItem('dripyard_cart');
       const savedWishlist = localStorage.getItem('dripyard_wishlist');
       if (savedCart) setCart(JSON.parse(savedCart));
       if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
     }
-  }, []);
+  }, [isLoggedIn]);
 
-  // Sync cart & wishlist to backend when logged in, otherwise to localStorage
+  // Sync cart to backend when logged in, otherwise to localStorage
   useEffect(() => {
-    if (isLoggedIn) {
-      fetch('/api/cart', {
+    if (isLoggedIn && cart.length >= 0) { // Will trigger on empty cart too
+      const token = localStorage.getItem('dripyard_token');
+      fetch('http://localhost:5000/api/users/cart', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ cart })
       }).catch(err => console.error('Failed to sync cart:', err));
     } else {
@@ -43,11 +52,14 @@ export const CartProvider = ({ children }) => {
   }, [cart, isLoggedIn]);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      fetch('/api/wishlist', {
+    if (isLoggedIn && wishlist.length >= 0) {
+      const token = localStorage.getItem('dripyard_token');
+      fetch('http://localhost:5000/api/users/wishlist', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ wishlist })
       }).catch(err => console.error('Failed to sync wishlist:', err));
     } else {

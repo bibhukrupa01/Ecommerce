@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../../context/CartContext';
-import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -32,18 +32,26 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     // Create order via backend
+    const token = localStorage.getItem('dripyard_token');
     const orderPayload = {
       userId: user.id,
-      items: cart.map(item => ({ id: item.id, qty: item.qty })),
+      items: cart.map(item => ({ 
+        id: item.id, 
+        name: item.name, 
+        price: item.price, 
+        qty: item.qty 
+      })),
       total: cartTotal,
       shippingAddress: address,
       status: 'processing'
     };
     try {
-      const res = await fetch('/api/orders', {
+      const res = await fetch('http://localhost:5000/api/orders', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(orderPayload)
       });
       if (!res.ok) throw new Error('Failed to create order');
@@ -51,8 +59,10 @@ export default function Checkout() {
       // Simulate payment success
       setPaymentStatus('success');
       clearCart();
-      // Redirect to order confirmation page (placeholder)
-      navigate(`/order-confirmation/${data.id}`);
+      // Redirect to profile to see order history after a short delay
+      setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
     } catch (err) {
       console.error(err);
       setPaymentStatus('error');
@@ -99,8 +109,29 @@ export default function Checkout() {
   const renderPayment = () => (
     <div className="glass p-6 rounded-lg max-w-md mx-auto text-center">
       <h2 className="text-xl font-accent text-white mb-4">Payment</h2>
-      {paymentStatus === 'error' && <p className="text-red-primary">Payment failed. Please try again.</p>}
-      <button className="btn btn-primary" onClick={handlePlaceOrder}>Pay ${cartTotal.toFixed(2)}</button>
+      {paymentStatus === 'success' ? (
+        <div className="text-green-500 mb-4">
+          <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          <p className="text-lg font-bold">Payment Successful!</p>
+          <p className="text-sm text-white mt-2">Redirecting to your profile...</p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-6 bg-black/20 p-4 rounded-md border border-white/10 text-left">
+            <p className="text-sm text-text-muted mb-2">Simulated Credit Card</p>
+            <div className="flex gap-2 mb-2">
+              <input type="text" placeholder="Card Number" defaultValue="4242 4242 4242 4242" readOnly className="bg-black/30 w-full border border-white/10 rounded-md p-2 text-white outline-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" placeholder="MM/YY" defaultValue="12/26" readOnly className="bg-black/30 border border-white/10 rounded-md p-2 text-white outline-none" />
+              <input type="text" placeholder="CVC" defaultValue="123" readOnly className="bg-black/30 border border-white/10 rounded-md p-2 text-white outline-none" />
+            </div>
+          </div>
+          {paymentStatus === 'error' && <p className="text-red-primary mb-4">Payment failed. Please try again.</p>}
+          <button className="btn btn-primary w-full" onClick={handlePlaceOrder}>Pay ${cartTotal.toFixed(2)}</button>
+          <button className="btn btn-secondary w-full mt-2" onClick={() => setStep(2)}>Back</button>
+        </>
+      )}
     </div>
   );
 

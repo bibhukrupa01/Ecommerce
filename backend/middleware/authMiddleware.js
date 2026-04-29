@@ -24,15 +24,30 @@ const verifyToken = async (req, res, next) => {
  * Middleware to restrict access to admin users only.
  * Assumes verifyToken has already run and populated req.user.
  */
-const adminOnly = (req, res, next) => {
+const adminOnly = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ status: 'error', message: 'Unauthenticated' });
   }
-  // Assuming custom claim `admin` is set on the Firebase user.
-  if (req.user.admin === true) {
-    return next();
+  
+  try {
+    const { db } = require('../config/firebase');
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    
+    const userData = userDoc.data();
+    if (userData.role === 'admin' || req.user.admin === true) {
+      req.user.role = 'admin';
+      return next();
+    }
+    
+    return res.status(403).json({ status: 'error', message: 'Admin access required' });
+  } catch (error) {
+    console.error('Error checking admin role:', error);
+    return res.status(500).json({ status: 'error', message: 'Internal server error' });
   }
-  return res.status(403).json({ status: 'error', message: 'Admin access required' });
 };
 
 module.exports = { verifyToken, adminOnly };

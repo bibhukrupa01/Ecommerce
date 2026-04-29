@@ -63,8 +63,77 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const getCart = async (req, res) => {
+  try {
+    const uid = req.user.uid || req.user.id || req.user.sub;
+    const userRef = db.collection('users').doc(uid);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    const data = doc.data();
+    res.status(200).json({ cart: data.cart || [] });
+  } catch (error) {
+    console.error('Error fetching cart:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+const updateCart = async (req, res) => {
+  try {
+    const uid = req.user.uid || req.user.id || req.user.sub;
+    const { cart } = req.body;
+    if (!Array.isArray(cart)) {
+      return res.status(400).json({ status: 'error', message: 'Cart must be an array' });
+    }
+    const userRef = db.collection('users').doc(uid);
+    await userRef.update({ cart });
+    res.status(200).json({ status: 'success', message: 'Cart updated', cart });
+  } catch (error) {
+    console.error('Error updating cart:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+const getWishlist = async (req, res) => {
+  try {
+    const uid = req.user.uid || req.user.id || req.user.sub;
+    const userRef = db.collection('users').doc(uid);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ status: 'error', message: 'User not found' });
+    }
+    const data = doc.data();
+    res.status(200).json({ wishlist: data.wishlist || [] });
+  } catch (error) {
+    console.error('Error fetching wishlist:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
+const updateWishlist = async (req, res) => {
+  try {
+    const uid = req.user.uid || req.user.id || req.user.sub;
+    const { wishlist } = req.body;
+    if (!Array.isArray(wishlist)) {
+      return res.status(400).json({ status: 'error', message: 'Wishlist must be an array' });
+    }
+    const userRef = db.collection('users').doc(uid);
+    await userRef.update({ wishlist });
+    res.status(200).json({ status: 'success', message: 'Wishlist updated', wishlist });
+  } catch (error) {
+    console.error('Error updating wishlist:', error);
+    res.status(500).json({ status: 'error', message: 'Internal server error' });
+  }
+};
+
 module.exports = {
   getUserProfile,
   updateUserProfile,
   getAllUsers,
+  getCart,
+  updateCart,
+  getWishlist,
+  updateWishlist
 };
+

@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import UserProfile from './pages/UserProfile';
+import Checkout from './pages/Checkout';
 import AdminLayout from './components/layout/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import Orders from './pages/admin/Orders';
@@ -43,9 +44,8 @@ function App() {
       </Route>
       
       <Route path="/" element={<Layout minimal={true} />}>
-        <Route path="checkout" element={<Placeholder title="CHECKOUT" />} />
+        <Route path="checkout" element={<Checkout />} />
         <Route path="payment-success" element={<Placeholder title="PAYMENT SUCCESS" />} />
-      
       </Route>
       
       <Route path="/admin" element={<AdminLayout />}>

@@ -26,6 +26,7 @@ export default function Products() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const token = localStorage.getItem('dripyard_token');
     try {
       const newProduct = {
         name: formData.name,
@@ -36,10 +37,12 @@ export default function Products() {
         badge: formData.badge || null,
         desc: formData.desc
       };
-      const res = await fetch('/api/products', {
+      const res = await fetch('http://localhost:5000/api/products', {
         method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(newProduct)
       });
       if (!res.ok) throw new Error('Failed to add product');
@@ -66,12 +69,18 @@ export default function Products() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editProductData) return;
+    const token = localStorage.getItem('dripyard_token');
     try {
       const { id, ...updates } = editProductData;
-      const res = await fetch(`/api/products/${id}`, {
+      updates.price = parseFloat(updates.price);
+      if (updates.originalPrice) updates.originalPrice = parseFloat(updates.originalPrice);
+      
+      const res = await fetch(`http://localhost:5000/api/products/${id}`, {
         method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(updates)
       });
       if (!res.ok) throw new Error('Failed to update product');
@@ -85,10 +94,13 @@ export default function Products() {
 
   const deleteProduct = async (id, name) => {
     if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+      const token = localStorage.getItem('dripyard_token');
       try {
-        const res = await fetch(`/api/products/${id}`, {
+        const res = await fetch(`http://localhost:5000/api/products/${id}`, {
           method: 'DELETE',
-          credentials: 'include'
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
         if (!res.ok) throw new Error('Failed to delete product');
         window.location.reload();
@@ -261,7 +273,41 @@ export default function Products() {
                 <label className="text-sm font-medium text-text-secondary">Product Name</label>
                 <input type="text" name="name" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary" value={editProductData.name || ''} onChange={handleEditChange} required />
               </div>
-              {/* Additional fields (price, category, badge, desc) can be added here */}
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-text-secondary">Price ($)</label>
+                  <input type="number" step="0.01" name="price" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary" value={editProductData.price || ''} onChange={handleEditChange} required />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-text-secondary">Original Price ($)</label>
+                  <input type="number" step="0.01" name="originalPrice" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary" value={editProductData.originalPrice || ''} onChange={handleEditChange} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-text-secondary">Category</label>
+                  <select name="category" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary outline-none" value={editProductData.category || ''} onChange={handleEditChange} required>
+                    <option value="hoodies">Hoodies</option>
+                    <option value="tshirts">T-Shirts</option>
+                    <option value="jackets">Jackets</option>
+                    <option value="pants">Pants</option>
+                    <option value="accessories">Accessories</option>
+                    <option value="sets">Sets</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-text-secondary">Badge</label>
+                  <input type="text" name="badge" placeholder="e.g. New, Hot, Limited" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary" value={editProductData.badge || ''} onChange={handleEditChange} />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-text-secondary">Description</label>
+                <textarea name="desc" rows="3" className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary resize-y" value={editProductData.desc || ''} onChange={handleEditChange} required></textarea>
+              </div>
+
               <button type="submit" className="btn btn-primary w-full py-3 mt-2">Save Changes</button>
             </form>
           </div>
