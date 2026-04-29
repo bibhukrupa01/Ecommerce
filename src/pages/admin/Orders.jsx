@@ -6,15 +6,20 @@ export default function Orders() {
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    // Read from localStorage to sync with legacy app.js logic
-    const storedOrders = JSON.parse(localStorage.getItem('dripyard_orders') || '[]');
-    const storedUsers = JSON.parse(localStorage.getItem('dripyard_users') || '[]');
-    
-    // Sort orders by most recent
-    storedOrders.sort((a, b) => new Date(b.date) - new Date(a.date));
-    
-    setOrders(storedOrders);
-    setUsers(storedUsers);
+    // Fetch orders from backend (admin)
+    fetch('/api/orders', { method: 'GET', credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        // Expect data to be array of orders
+        const sorted = data.sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+        setOrders(sorted);
+      })
+      .catch(err => console.error('Failed to load orders:', err));
+    // Fetch users for order display
+    fetch('/api/users', { method: 'GET', credentials: 'include' })
+      .then(res => res.json())
+      .then(usersData => setUsers(usersData))
+      .catch(err => console.error('Failed to load users:', err));
   }, []);
 
   const updateOrderStatus = (orderId, newStatus) => {

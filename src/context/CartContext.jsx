@@ -11,20 +11,49 @@ export const CartProvider = ({ children }) => {
   const [wishlist, setWishlist] = useState([]);
 
   useEffect(() => {
-    const savedCart = localStorage.getItem('dripyard_cart');
-    const savedWishlist = localStorage.getItem('dripyard_wishlist');
-    if (savedCart) setCart(JSON.parse(savedCart));
-    if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+    if (isLoggedIn) {
+      // Fetch cart and wishlist from backend for logged-in user
+      fetch('/api/cart', { method: 'GET', credentials: 'include' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.cart) setCart(data.cart);
+          if (data.wishlist) setWishlist(data.wishlist);
+        })
+        .catch(err => console.error('Failed to load cart from backend:', err));
+    } else {
+      const savedCart = localStorage.getItem('dripyard_cart');
+      const savedWishlist = localStorage.getItem('dripyard_wishlist');
+      if (savedCart) setCart(JSON.parse(savedCart));
+      if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+    }
   }, []);
 
-  // Sync to localStorage whenever they change
+  // Sync cart & wishlist to backend when logged in, otherwise to localStorage
   useEffect(() => {
-    localStorage.setItem('dripyard_cart', JSON.stringify(cart));
-  }, [cart]);
+    if (isLoggedIn) {
+      fetch('/api/cart', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cart })
+      }).catch(err => console.error('Failed to sync cart:', err));
+    } else {
+      localStorage.setItem('dripyard_cart', JSON.stringify(cart));
+    }
+  }, [cart, isLoggedIn]);
 
   useEffect(() => {
-    localStorage.setItem('dripyard_wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+    if (isLoggedIn) {
+      fetch('/api/wishlist', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wishlist })
+      }).catch(err => console.error('Failed to sync wishlist:', err));
+    } else {
+      localStorage.setItem('dripyard_wishlist', JSON.stringify(wishlist));
+    }
+  }, [wishlist, isLoggedIn]);
 
   const addToCart = (product) => {
     if (!isLoggedIn) {

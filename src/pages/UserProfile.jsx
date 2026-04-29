@@ -19,21 +19,29 @@ export default function UserProfile() {
       return;
     }
 
-    // Get stats from localStorage to match the legacy logic
-    const orders = JSON.parse(localStorage.getItem('dripyard_orders') || '[]');
-    const wishlist = JSON.parse(localStorage.getItem('dripyard_wishlist') || '[]');
-    const reviews = JSON.parse(localStorage.getItem('dripyard_reviews') || '[]');
-
-    const userOrders = orders.filter(o => o.userId === user.id);
-    const userReviews = reviews.filter(r => r.userId === user.id);
-    const spent = userOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-
-    setStats({
-      ordersCount: userOrders.length,
-      wishlistCount: wishlist.length,
-      reviewsCount: userReviews.length,
-      totalSpent: spent
-    });
+    // Fetch stats from backend for the logged-in user
+    const fetchStats = async () => {
+      try {
+        const [ordersRes, wishlistRes, reviewsRes] = await Promise.all([
+          fetch(`/api/orders?userId=${user.id}`, { credentials: 'include' }),
+          fetch(`/api/wishlist?userId=${user.id}`, { credentials: 'include' }),
+          fetch(`/api/reviews?userId=${user.id}`, { credentials: 'include' })
+        ]);
+        const ordersData = await ordersRes.json();
+        const wishlistData = await wishlistRes.json();
+        const reviewsData = await reviewsRes.json();
+        const spent = ordersData.reduce((sum, order) => sum + (order.total || 0), 0);
+        setStats({
+          ordersCount: ordersData.length,
+          wishlistCount: wishlistData.length,
+          reviewsCount: reviewsData.length,
+          totalSpent: spent
+        });
+      } catch (err) {
+        console.error('Failed to fetch user stats:', err);
+      }
+    };
+    fetchStats();
   }, [user, navigate]);
 
   const handleLogout = (e) => {
