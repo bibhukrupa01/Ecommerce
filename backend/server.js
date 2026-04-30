@@ -29,6 +29,7 @@ app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/categories', require('./routes/categoryRoutes'));
 
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/coupons', require('./routes/couponRoutes'));
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'success', message: 'API is healthy' });

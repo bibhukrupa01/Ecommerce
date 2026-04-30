@@ -1,10 +1,23 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
 
 export default function Cart() {
   const { isLoggedIn } = useAuth();
-  const { cart, updateCartQty, removeFromCart, cartTotal, cartCount } = useCart();
+  const { cart, updateCartQty, removeFromCart, cartTotal, cartCount, appliedCoupon, discountAmount, applyCouponCode, clearCoupon } = useCart();
+  const [couponCode, setCouponCode] = useState('');
+
+  // Apply coupon handler - calls backend API via CartContext
+  const handleApplyCoupon = async () => {
+    try {
+      await applyCouponCode(couponCode, cartTotal);
+      setCouponCode('');
+    } catch (e) {
+      console.error(e);
+      alert(e.message || 'Failed to apply coupon');
+    }
+  };
 
   if (!isLoggedIn) {
     return (
@@ -32,7 +45,9 @@ export default function Cart() {
   const subtotal = cartTotal;
   const tax = subtotal * 0.08;
   const shipping = subtotal >= 100 ? 0 : 5.99;
-  const total = subtotal + tax + shipping;
+  const discount = discountAmount;
+  const discountedSubtotal = Math.max(subtotal - discount, 0);
+  const total = discountedSubtotal + tax + shipping;
 
   return (
     <div className="container py-12 pb-24 min-h-[70vh]">
@@ -91,6 +106,12 @@ export default function Cart() {
               <span>Subtotal ({cartCount} items)</span>
               <span className="text-white">${subtotal.toFixed(2)}</span>
             </div>
+            {appliedCoupon && (
+              <div className="flex justify-between text-green-500">
+                <span>Discount ({appliedCoupon.code})</span>
+                <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span>Shipping</span>
               <span className={shipping === 0 ? "text-green-500" : "text-white"}>
@@ -104,8 +125,17 @@ export default function Cart() {
           </div>
           
           <div className="flex gap-2 my-6">
-            <input type="text" className="form-input flex-1 px-4 py-2 bg-black/40 border border-white/10 rounded-md focus:border-red-primary outline-none transition-colors text-white" placeholder="Coupon code" />
-            <button className="btn btn-secondary btn-sm rounded-md whitespace-nowrap">Apply</button>
+            {appliedCoupon ? (
+              <div className="flex-1 flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-md px-4 py-2">
+                <span className="text-green-400 text-sm font-bold tracking-wider">{appliedCoupon.code}</span>
+                <button onClick={clearCoupon} className="text-text-muted hover:text-red-primary text-xs ml-2">Remove</button>
+              </div>
+            ) : (
+              <>
+                <input type="text" value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} className="form-input flex-1 px-4 py-2 bg-black/40 border border-white/10 rounded-md focus:border-red-primary outline-none transition-colors text-white" placeholder="Coupon code" />
+                <button className="btn btn-secondary btn-sm rounded-md whitespace-nowrap" onClick={handleApplyCoupon}>Apply</button>
+              </>
+            )}
           </div>
           
           <div className="border-t border-white/10 pt-4 mt-2">

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 
+const API_BASE = 'http://localhost:5000/api/coupons';
+
 export default function Coupons() {
   const [coupons, setCoupons] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     code: '',
@@ -13,15 +16,28 @@ export default function Coupons() {
     expiresAt: ''
   });
 
-  useEffect(() => {
-    const storedCoupons = JSON.parse(localStorage.getItem('dripyard_coupons') || '[]');
-    setCoupons(storedCoupons);
-  }, []);
+  const getToken = () => localStorage.getItem('dripyard_token');
 
-  const saveCoupons = (newCoupons) => {
-    setCoupons(newCoupons);
-    localStorage.setItem('dripyard_coupons', JSON.stringify(newCoupons));
+  // Fetch all coupons from backend API
+  const fetchCoupons = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(API_BASE, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch coupons');
+      const data = await res.json();
+      setCoupons(data);
+    } catch (err) {
+      console.error('Error fetching coupons:', err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
 
   const handleInputChange = (e) => {
     // Force uppercase for coupon codes
@@ -29,32 +45,47 @@ export default function Coupons() {
     setFormData(prev => ({ ...prev, [e.target.name]: value }));
   };
 
-  const handleCreateCoupon = (e) => {
+  const handleCreateCoupon = async (e) => {
     e.preventDefault();
     
-    const newCoupon = {
-      id: Date.now(),
-      code: formData.code,
-      type: formData.type,
-      value: parseFloat(formData.value),
-      minOrder: parseFloat(formData.minOrder) || 0,
-      maxUses: formData.maxUses ? parseInt(formData.maxUses, 10) : null,
-      usedCount: 0,
-      expiresAt: formData.expiresAt,
-      active: true
-    };
-
-    saveCoupons([newCoupon, ...coupons]);
-    setIsModalOpen(false);
-    setFormData({ code: '', type: 'percentage', value: '', minOrder: '0', maxUses: '', expiresAt: '' });
-    alert('Coupon created successfully!');
+    try {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getToken()}`
+        },
+        body: JSON.stringify(formData)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.message || 'Failed to create coupon');
+        return;
+      }
+      setIsModalOpen(false);
+      setFormData({ code: '', type: 'percentage', value: '', minOrder: '0', maxUses: '', expiresAt: '' });
+      alert('Coupon created successfully!');
+      fetchCoupons(); // Refresh list from backend
+    } catch (err) {
+      console.error('Error creating coupon:', err);
+      alert('Failed to create coupon');
+    }
   };
 
-  const deleteCoupon = (id, code) => {
+  const deleteCoupon = async (id, code) => {
     if (window.confirm(`Are you sure you want to delete coupon ${code}?`)) {
-      const filtered = coupons.filter(c => c.id !== id);
-      saveCoupons(filtered);
-      alert('Coupon deleted.');
+      try {
+        const res = await fetch(`${API_BASE}/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) throw new Error('Failed to delete');
+        alert('Coupon deleted.');
+        fetchCoupons(); // Refresh list from backend
+      } catch (err) {
+        console.error('Error deleting coupon:', err);
+        alert('Failed to delete coupon');
+      }
     }
   };
 
@@ -137,10 +168,17 @@ export default function Coupons() {
                 );
               })}
               
-              {coupons.length === 0 && (
+              {!loading && coupons.length === 0 && (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-text-muted border-b border-white/5">
                     No active discount coupons.
+                  </td>
+                </tr>
+              )}
+              {loading && (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-text-muted border-b border-white/5">
+                    Loading coupons...
                   </td>
                 </tr>
               )}
