@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { auth, db } from '../config/firebase';
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
+import {
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut
 } from 'firebase/auth';
@@ -17,7 +17,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     // On mount, check if token and user exist
     const token = localStorage.getItem('dripyard_token');
@@ -49,16 +49,16 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
       const finalUser = data.user;
-      
+
       // Also sign in on the frontend with the token if we want to keep the Firebase session
       // For now, we'll just store information locally as before.
       localStorage.setItem('dripyard_token', data.token);
       localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
       setUser(finalUser);
-      return { success: true };
+      return { success: true, user: finalUser };
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, message: error.message }; 
+      return { success: false, message: error.message };
     }
   };
 
@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await signOut(auth);
-    } catch(e) {}
+    } catch (e) { }
     localStorage.removeItem('dripyard_token');
     localStorage.removeItem('dripyard_current_user');
     setUser(null);
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const fbUser = userCredential.user;
       const idToken = await fbUser.getIdToken();
-      
+
       // 2. Sync with backend (which creates the Firestore document with Admin privileges)
       // Note: We use the register endpoint or a new sync endpoint.
       // Since the user is already created in Auth, we can just call our backend to create the doc.
@@ -115,7 +115,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Registration error:', error);
       // If it's the "Email already exists" from backend after frontend success, we can try to recover
-      return { success: false, message: error.message }; 
+      return { success: false, message: error.message };
     }
   };
 
@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       const result = await signInWithPopup(auth, provider);
       const fbUser = result.user;
       const token = await fbUser.getIdToken();
-      
+
       // 2. Call backend to verify and ensure user exists in Firestore (Admin privileges)
       const response = await fetch('http://localhost:5000/api/auth/google', {
         method: 'POST',
@@ -156,7 +156,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('dripyard_token', token);
       localStorage.setItem('dripyard_current_user', JSON.stringify(finalUser));
       setUser(finalUser);
-      return { success: true };
+      return { success: true, user: finalUser };
     } catch (error) {
       console.error('Google login error:', error);
       return { success: false, message: error.message };

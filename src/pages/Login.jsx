@@ -8,21 +8,21 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const { login, loginWithGoogle, isLoggedIn, loading } = useAuth();
+  const { login, loginWithGoogle, isLoggedIn, user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && isLoggedIn) {
-      navigate('/');
+      navigate(user?.role === 'admin' ? '/admin' : '/');
     }
-  }, [isLoggedIn, loading, navigate]);
+  }, [isLoggedIn, loading, navigate, user]);
 
   const handleGoogleLogin = async (e) => {
     e.preventDefault();
     setError('');
     const result = await loginWithGoogle();
     if (result.success) {
-      navigate('/');
+      navigate(result.user?.role === 'admin' ? '/admin' : '/');
     } else {
       setError(result.message || 'Google Sign-In failed. Please try again.');
     }
@@ -31,12 +31,10 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     const result = await login(email, password);
     if (result.success) {
-      // Get the latest user right from the context next render, or just navigate
-      // Since context state updates asynchronously, we can rely on navigating
-      navigate('/');
+      navigate(result.user?.role === 'admin' ? '/admin' : '/');
     } else {
       setError(result.message || 'Invalid email or password. Try again.');
     }
@@ -52,7 +50,7 @@ export default function Login() {
         </div>
         <h3 className="text-center font-accent text-xl font-semibold mb-2 text-white">Welcome Back</h3>
         <p className="subtitle text-center text-text-secondary text-sm mb-7">Sign in to continue your heist</p>
-        
+
         <div className="social-login flex gap-3 mb-6">
           <button type="button" onClick={handleGoogleLogin} className="social-btn flex-1 p-3 border border-white/10 rounded-md flex items-center justify-center gap-2 text-text-secondary text-sm transition-colors hover:border-red-primary/30 hover:bg-red-primary/5">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -64,7 +62,7 @@ export default function Login() {
             Google
           </button>
         </div>
-        
+
         <div className="divider flex items-center gap-4 mb-6">
           <div className="h-px bg-white/10 flex-1"></div>
           <span className="text-xs text-text-muted uppercase tracking-wider">or</span>
@@ -74,27 +72,27 @@ export default function Login() {
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-text-secondary">Email Address</label>
-            <input 
-              type="email" 
-              className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary placeholder:text-white/20 transition-colors" 
-              placeholder="johndoe@gmail.com" 
+            <input
+              type="email"
+              className="bg-black/30 border border-white/10 rounded-md p-3 text-white focus:border-red-primary placeholder:text-white/20 transition-colors"
+              placeholder="johndoe@gmail.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required 
+              required
             />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-text-secondary">Password</label>
             <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
-                className="w-full bg-black/30 border border-white/10 rounded-md p-3 pr-10 text-white focus:border-red-primary placeholder:text-white/20 transition-colors" 
-                placeholder="••••••••" 
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full bg-black/30 border border-white/10 rounded-md p-3 pr-10 text-white focus:border-red-primary placeholder:text-white/20 transition-colors"
+                placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required 
+                required
               />
-              <button 
+              <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white transition-colors"
                 onClick={() => setShowPassword(!showPassword)}
@@ -103,7 +101,7 @@ export default function Login() {
               </button>
             </div>
           </div>
-          
+
           <div className="flex justify-between items-center mb-4">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" className="accent-red-primary" />

@@ -56,6 +56,7 @@ const createProduct = async (req, res) => {
   try {
     const data = req.body;
     data.createdAt = admin.firestore.FieldValue.serverTimestamp();
+    data.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
     const docRef = await db.collection('products').add(data);
     const newDoc = await docRef.get();
     res.status(201).json({ id: docRef.id, ...newDoc.data() });
@@ -77,6 +78,7 @@ const updateProduct = async (req, res) => {
     if (!doc.exists) {
       return res.status(404).json({ status: 'error', message: 'Product not found' });
     }
+    data.lastUpdated = admin.firestore.FieldValue.serverTimestamp();
     await productRef.update(data);
     const updatedDoc = await productRef.get();
     res.status(200).json({ id, ...updatedDoc.data() });
